@@ -60,7 +60,7 @@
     btnClearKey: $("btn-clear-key"),
     btnSaveKey: $("btn-save-key"),
     keyStatus: $("key-status"),
-    toast: $("toast"),
+    flowNote: $("flow-note"),
     /* practice modes + streak */
     modeRow: $("mode-row"),
     streakChip: $("streak-chip"),
@@ -93,13 +93,15 @@
     isNative && cap.Plugins && cap.Plugins.SpeechRecognition ? cap.Plugins.SpeechRecognition : null;
 
   /* ────────────── Tiny helpers ────────────── */
-  let toastTimer = null;
-  function toast(msg, isErr = false, ms = 3200) {
-    els.toast.textContent = msg;
-    els.toast.classList.toggle("err", isErr);
-    els.toast.classList.remove("hidden");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => els.toast.classList.add("hidden"), ms);
+  /* Messages live in the layout, never in a floating box: one quiet line in
+     the dock that fades out of the text itself. Nothing covers the screen. */
+  let noteTimer = null;
+  function note(msg, isErr = false, ms = 6000) {
+    if (!els.flowNote) return;
+    els.flowNote.textContent = msg;
+    els.flowNote.classList.toggle("err", isErr);
+    clearTimeout(noteTimer);
+    if (ms > 0) noteTimer = setTimeout(() => { els.flowNote.textContent = ""; }, ms);
   }
 
   function getApiKey() {
@@ -280,7 +282,7 @@
     // Never change the topic mid-session: the recorder and the pending
     // evaluation both reference the captured topic.
     if (state.recording || state.evaluating) {
-      toast("Finish the current attempt first! ⏳", true, 2200);
+      note("Finish the current attempt first! ⏳", true, 2200);
       return;
     }
     state.topic = getRandomTopic(state.topic);
@@ -381,31 +383,64 @@
 
   /* beginSpeechCapture resolves after listening has started and returns
      a stop() function to end the capture immediately. */
-  async function beginSpeechCapture(onPartial, onError) {
-    return nativeSpeech ? captureNativeSpeech(onPartial, onError) : captureWebSpeech(onPartial, onError);
+  async function beginSpeechCapture(onPartial, onError, onReady) {
+    return nativeSpeech
+      ? captureNativeSpeech(onPartial, onError, onReady)
+      : captureWebSpeech(onPartial, onError, onReady);
   }
 
-  async function captureNativeSpeech(onPartial, onError) {
-    const SR = nativeSpeech;
-    try {
-      let has = false;
+  /* @capacitor-community/speech-recognition 6.x reports ONE permission field,
+     `speechRecognition` (the mic prompt is raised by start() itself). The old
+     gate also required `microphone`, which the plugin never returns — so it
+     always read "denied" and capture never began. */
+  async function ensureSpeechPermission(SR) {
+    const granted = async () => {
       try {
-        const p = await SR.hasPermission();
-        has = !!p.hasPermission;
+        const p = await SR.checkPermissions();
+        return !!p && p.speechRecognition === "granted";
       } catch (_) {
-        try {
-          const p = await SR.checkPermissions();
-          has = p.speechRecognition === "granted" && p.microphone === "granted";
-        } catch (_) {
-          has = false;
-        }
+        return false;
       }
-      if (!has) {
-        const granted = await requestSpeechPermission();
-        if (!granted) {
-          onError("Microphone / Speech access denied. Enable it in iOS Settings → Privacy → Speech Recognition & Microphone.");
-          return () => {};
-        }
+    };
+    if (await granted()) return true;
+    try { await SR.requestPermissions(); } catch (_) {}
+    return granted();
+  }
+
+  async function captureNativeSpeech(onPartial, onError, onReady) {
+    const SR = nativeSpeech;
+    const startOpts = () => ({
+      language: "en-US",
+      maxResults: 1,
+      prompt: "Speak for exactly " + state.modeSec + " seconds!",
+      partialResults: true,
+      popup: false,            // never a native dialog on top of the app
+    });
+
+    let starting = false;
+    let restarts = 0;
+    let stoppedByUs = false;
+
+    const begin = async () => {
+      if (starting) return;
+      starting = true;
+      try {
+        await SR.start(startOpts());
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        // "ongoing" only means a task is already listening — not a failure.
+        if (!/ongoing/i.test(msg)) onError("Speech recognition could not start: " + msg);
+      } finally {
+        starting = false;
+      }
+    };
+
+    try {
+      if (!(await ensureSpeechPermission(SR))) {
+        onError(
+          "Speech access is off. Turn on Speech Recognition and Microphone for Fluency Coach in iOS Settings → Privacy & Security."
+        );
+        return () => {};
       }
 
       const availability = await SR.available();
@@ -420,30 +455,35 @@
         if (text) onPartial(text);
       });
 
-      await SR.start({
-        language: "en-US",
-        maxResults: 1,
-        prompt: "Speak for exactly " + state.modeSec + " seconds!",
-        partialResults: true,
-        popup: false,
+      /* iOS ends a recognition task when the request dies or the audio pauses;
+         resume it while the attempt still has time so a pause never costs the
+         window (guarded, so a broken engine cannot loop). */
+      SR.addListener("listeningState", (data) => {
+        if (!data) return;
+        if (data.status === "started") {
+          // Proof that the engine runs: release the start lock even if the
+          // start() promise is still pending (iOS may never settle it).
+          starting = false;
+          return;
+        }
+        if (stoppedByUs || data.status !== "stopped") return;
+        if (restarts >= 3) return;
+        restarts += 1;
+        begin();
       });
-      return () => {};
+
+      // Permission is settled and a listener is in place: the clock may start
+      // now, even while the native engine is still warming up.
+      onReady();
+      begin();
+      return () => { stoppedByUs = true; };
     } catch (err) {
       onError("Speech recognition failed to start: " + (err && err.message ? err.message : String(err)));
       return () => {};
     }
   }
 
-  async function requestSpeechPermission() {
-    try {
-      const perm = await nativeSpeech.requestPermission();
-      return perm.speechRecognition === "granted" && perm.microphone === "granted";
-    } catch (_) {
-      return false;
-    }
-  }
-
-  async function captureWebSpeech(onPartial, onError) {
+  async function captureWebSpeech(onPartial, onError, onReady) {
     const SRClass = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SRClass) {
       onError("This browser has no speech recognition. Use Safari/Chrome, or run the app natively via Capacitor.");
@@ -498,10 +538,10 @@
         return;
       }
       if (kind === "network") {
-        toast("Speech service unreachable (network) — this attempt may be incomplete", true, 3200);
+        note("Speech service unreachable (network) — this attempt may be incomplete", true, 3200);
         return;
       }
-      toast("Speech warning: " + kind, true, 2400);
+      note("Speech warning: " + kind, true, 2400);
     };
 
     rec.onend = () => {
@@ -513,6 +553,7 @@
       }
     };
 
+    if (onReady) onReady(); // the clock never waits for the engine
     try { rec.start(); } catch (err) {
       onError("Speech recognition failed to start: " + String(err));
       return () => {};
@@ -538,11 +579,11 @@
     if (state.recording || state.evaluating) return;
 
     if (!state.topic) {
-      toast("Draw a topic first! 🎲", true);
+      note("Draw a topic first! 🎲", true);
       return;
     }
     if (!getApiKey()) {
-      toast("Save your Gemini API key first ⚙️", true);
+      note("Save your Gemini API key first ⚙️", true);
       openSettings();
       return;
     }
@@ -580,34 +621,60 @@
       pendingTranscript = text;
       if (!transcriptFrame) transcriptFrame = requestAnimationFrame(flushTranscript);
     };
+    /* The clock is its own promise, settled by the cutoff or by a dead engine.
+       It no longer waits for the engine's start(): on iOS that promise resolves
+       whenever the native side decides, which is why the countdown used to
+       stand still behind a "Listening…" label. */
+    let settled = false;
+    let clockRunning = false;
+    let settleClock = null;
+    const clockDone = new Promise((resolve) => { settleClock = resolve; });
+
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(clockFallback);
+      settleClock();
+    };
+
+    const startClock = () => {
+      if (clockRunning || settled) return;
+      clockRunning = true;
+      clearTimeout(clockFallback);
+      startTimer(settle); // the cutoff calls settle() at the exact duration
+    };
+
+    // Safety net: whatever the engine is doing, the window starts in 3s.
+    const clockFallback = setTimeout(startClock, 3000);
+
     const onError = (err) => {
       if (state.session !== session) return;
       if (!session.error) session.error = err;
+      settle(); // a dead engine ends the attempt instead of idling for 60s
     };
 
     let stopCapture = () => {};
     try {
-      stopCapture = await beginSpeechCapture(onPartial, onError);
+      stopCapture = await beginSpeechCapture(onPartial, onError, startClock);
     } catch (err) {
       onError("Speech capture crashed: " + (err && err.message ? err.message : String(err)));
     }
 
-    // Session may already be dead (fatal error, or the cutoff raced the start).
-    if (state.session !== session) {
+    await clockDone;
+    if (state.session !== session) { // aborted meanwhile
       try { stopCapture(); } catch (_) {}
       return;
     }
+
     if (session.error) {
+      try { stopCapture(); } catch (_) {}
       await killCaptureRunnable();
       await teardownSession(session);
       resetStartButton();
-      toast(session.error, true, 5000);
+      els.liveTranscript.textContent = "";
+      note(session.error, true, 9000);
       return;
     }
-
-    // Strict hard cutoff at exactly the selected duration — regardless of state.
-    await new Promise((resolve) => startTimer(resolve));
-    if (state.session !== session) return; // aborted meanwhile
 
     // ── Cutoff: stop the mic, then DRAIN. iOS/Safari can flush the final
     // utterance shortly after stop(); the session stays live (and therefore
@@ -648,14 +715,14 @@
     resetStartButton();
 
     if (session.error) {
-      toast(session.error, true, 5000);
+      note(session.error, true, 5000);
       return;
     }
 
     const final = (session.transcript || "").trim();
 
     if (!final || final.replace(/[^a-z0-9']/gi, "").length < 4) {
-      toast("No speech detected in the " + session.durationSec + "s window — try again! 🎤", true, 4500);
+      note("No speech detected in the " + session.durationSec + "s window — try again! 🎤", true, 4500);
       els.liveTranscript.textContent = "";
       return;
     }
@@ -712,14 +779,14 @@
     const apiKey = getApiKey();
     if (!apiKey) {
       state.evaluating = false;
-      toast("Missing API key — open settings ⚙️", true);
+      note("Missing API key — open settings ⚙️", true);
       resetStartButton();
       openSettings();
       return;
     }
     if (navigator.onLine === false) {
       state.evaluating = false;
-      toast("No internet connection — evaluation needs to reach Gemini.", true, 4200);
+      note("No internet connection — evaluation needs to reach Gemini.", true, 4200);
       resetStartButton();
       return;
     }
@@ -809,7 +876,7 @@
           : err && err.message
           ? err.message
           : String(err);
-      toast(msg, true, 5200);
+      note(msg, true, 5200);
     } finally {
       clearTimeout(timeout);
       state.evaluating = false;
@@ -1097,7 +1164,7 @@
     clearHistoryButtonArmed();
     renderHistory(loadHistory());
     renderStreakChip(loadHistory());   // the streak is derived from history
-    toast("History deleted", false, 1800);
+    note("History deleted", false, 1800);
   });
 
   els.btnHistory.addEventListener("click", goHistory);

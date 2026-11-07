@@ -295,8 +295,8 @@ body {
 
 .live-transcript {
   min-height: 56px;
-  max-width: 320px;
-  font-size: 14.5px;
+  max-width: 340px;
+  font-size: 15px;
   line-height: 1.55;
   color: var(--faint);
   text-align: center;
@@ -644,31 +644,17 @@ body {
 .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
 .modal-actions .btn { min-height: 48px; font-size: 14.5px; }
 
-/* ───────── Toast ───────── */
-.toast {
-  /* the header is gone: the toast now drops in below the two icons */
-  position: fixed;
-  left: 50%;
-  top: calc(env(safe-area-inset-top, 0px) + 54px);
-  z-index: 60;
-  max-width: 84%;
-  padding: 12px 18px;
-  border-radius: var(--radius-inner);
-  background: #1b1814;
-  border: 1px solid var(--line);
-  box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 244, 224, 0.06);
-  color: var(--text);
-  font-size: 13.5px;
-  line-height: 1.4;
-  text-align: center;
-  transform: translate(-50%, 0);
-  animation: toast-in 200ms var(--ease-out);
+/* ───────── Inline note: messages sit in the layout, never on top of it ───────── */
+.flow-note {
+  margin: 0;
+  padding: 0 2px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--dim);
+  overflow-wrap: anywhere;
 }
-.toast.err { border-color: rgba(224, 141, 138, 0.4); color: var(--danger); }
-@keyframes toast-in {
-  from { opacity: 0; transform: translate(-50%, -120%); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
+.flow-note:empty { display: none; }
+.flow-note.err { color: var(--danger); }
 
 /* ───────── Spinner (legitimate loading indicator) ───────── */
 .btn-spinner {
@@ -690,7 +676,7 @@ body {
 
 /* ───────── Accessibility ───────── */
 @media (prefers-reduced-motion: reduce) {
-  .screen, .timer-section, .toast { animation: none !important; }
+  .screen, .timer-section { animation: none !important; }
   .ring-progress { transition: none !important; }
   .btn:active, .icon-btn:active, .mode-pill:active { transform: none; }
   .timer-wrap.final { transform: none; transition: none; }
