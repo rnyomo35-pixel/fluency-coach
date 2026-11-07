@@ -1,0 +1,29 @@
+{
+  "name": "fluency-coach",
+  "version": "1.0.0",
+  "description": "10-Second English Fluency Coach - rapid spontaneous speaking practice app",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx serve www",
+    "cap:sync": "npx cap sync ios",
+    "cap:ios": "npx cap open ios",
+    "cap:add-ios": "npx cap add ios"
+  },
+  "keywords": [
+    "english",
+    "fluency",
+    "capacitor",
+    "ios"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor-community/speech-recognition": "^6.0.1",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0",
+    "@capacitor/keyboard": "^6.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

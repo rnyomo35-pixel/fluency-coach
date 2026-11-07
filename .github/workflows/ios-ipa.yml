@@ -1,0 +1,80 @@
+name: Build unsigned .ipa
+
+# Produces an UNSIGNED .ipa on a macOS runner. AltStore / AltServer re-signs it
+# with your own Apple ID during install, so no certificates are needed here.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Copy web assets into the iOS project
+        run: npx cap sync ios
+
+      - name: Install CocoaPods
+        working-directory: ios/App
+        run: pod install --repo-update
+
+      - name: Show schemes (diagnostics)
+        working-directory: ios/App
+        run: xcodebuild -workspace App.xcworkspace -list
+
+      - name: Archive (no code signing)
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            archive
+
+      - name: Package Payload/FluencyCoach.ipa
+        run: |
+          set -euo pipefail
+          APP_PATH="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          test -d "$APP_PATH" || { echo "No .app in archive"; ls -R "$RUNNER_TEMP/App.xcarchive/Products"; exit 1; }
+          rm -rf Payload FluencyCoach.ipa
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          # Info.plist check: the home-screen name must not be the default "App"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" Payload/App.app/Info.plist
+          zip -qry FluencyCoach.ipa Payload
+          ls -lh FluencyCoach.ipa
+
+      - name: Upload .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluencyCoach-ipa
+          path: FluencyCoach.ipa
+          if-no-files-found: error
+          retention-days: 30

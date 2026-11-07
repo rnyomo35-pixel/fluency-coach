@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Fluency Coach</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ═══════════════ FLOW / HOME ═══════════════ -->
+    <main id="screen-flow" class="screen">
+      <div class="top-actions">
+        <button id="btn-history" class="icon-btn" aria-label="Session history">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3.5 2"></path>
+          </svg>
+        </button>
+        <button id="btn-settings" class="icon-btn" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="15" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <section class="hero">
+        <div class="hero-head">
+          <span class="eyebrow">Topic</span>
+          <span id="streak-chip" class="streak-chip">No streak yet</span>
+        </div>
+        <p id="topic-text" class="topic-text placeholder">Draw a topic and speak about it for the clock. No notes, no pauses.</p>
+        <button id="btn-new-topic" class="btn btn-quiet">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="4"></rect>
+            <circle cx="8.5" cy="8.5" r="1.1" fill="currentColor" stroke="none"></circle>
+            <circle cx="15.5" cy="15.5" r="1.1" fill="currentColor" stroke="none"></circle>
+            <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"></circle>
+            <circle cx="8.5" cy="15.5" r="1.1" fill="currentColor" stroke="none"></circle>
+            <circle cx="15.5" cy="8.5" r="1.1" fill="currentColor" stroke="none"></circle>
+          </svg>
+          <span>Draw a topic</span>
+        </button>
+      </section>
+
+      <!-- Timer + record screen -->
+      <section id="timer-section" class="timer-section hidden">
+        <div class="timer-wrap">
+          <svg class="timer-ring" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+            <circle id="ring-progress" class="ring-progress" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="timer-center">
+            <span id="timer-seconds" class="timer-seconds">10</span>
+            <span class="timer-unit">seconds</span>
+          </div>
+        </div>
+        <p id="live-transcript" class="live-transcript">Listening…</p>
+      </section>
+
+      <!-- Docked controls: practice length + primary action, always in thumb reach -->
+      <div class="dock">
+        <div class="dock-inner">
+          <div class="dock-head">
+            <span class="eyebrow">Length</span>
+          </div>
+          <div id="mode-row" class="mode-row" role="group" aria-label="Practice mode">
+            <div class="seg-thumb" aria-hidden="true"></div>
+            <button class="mode-pill active" data-sec="10">10s</button>
+            <button class="mode-pill" data-sec="30">30s</button>
+            <button class="mode-pill" data-sec="60">60s</button>
+          </div>
+          <div class="action-row">
+            <button id="btn-start-speaking" class="btn btn-primary" disabled>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <path d="M12 19v3"></path>
+              </svg>
+              <span>Start 10s Speaking</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ═══════════════ SCORECARD ═══════════════ -->
+    <main id="screen-scorecard" class="screen hidden">
+      <section class="score-hero">
+        <div class="score-ring-wrap">
+          <svg class="timer-ring score-ring" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+            <circle id="score-arc" class="ring-progress" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="timer-center">
+            <span id="score-value" class="score-value">–</span>
+            <span class="timer-unit">of 10</span>
+          </div>
+        </div>
+        <div class="score-caption">
+          <span class="eyebrow">Score</span>
+          <h2 id="score-title">Your score</h2>
+          <p id="score-subtitle">Fluency &amp; grammatical accuracy</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-label">What we heard</div>
+        <p id="heard-text" class="heard-text"></p>
+      </section>
+
+      <section id="mistakes-section" class="card">
+        <div class="card-label">Mistakes</div>
+        <ul id="mistakes-list" class="mistakes-list"></ul>
+      </section>
+
+      <section class="card c1-block">
+        <div class="card-label">Try this next time</div>
+        <p id="c1-text" class="c1-text"></p>
+      </section>
+
+      <section class="card feedback-block">
+        <div class="card-label">One tip</div>
+        <p id="feedback-text" class="feedback-text"></p>
+      </section>
+
+      <div class="score-actions">
+        <button id="btn-retry-topic" class="btn btn-secondary">Retry topic</button>
+        <button id="btn-new-topic-2" class="btn btn-primary">New topic</button>
+      </div>
+    </main>
+
+    <!-- ═══════════════ HISTORY ═══════════════ -->
+    <main id="screen-history" class="screen hidden">
+      <section class="card history-card">
+        <div class="card-label">History</div>
+
+        <div id="history-empty" class="history-empty">
+          <p>Nothing here yet.</p>
+          <p class="history-empty-sub">Finish one attempt and your progress starts building.</p>
+        </div>
+
+        <div id="history-stats" class="history-stats hidden">
+          <div class="stat-block"><span id="s-total" class="stat-value">0</span><span class="stat-label">sessions</span></div>
+          <div class="stat-block"><span id="s-best" class="stat-value">–</span><span class="stat-label">best</span></div>
+          <div class="stat-block"><span id="s-avg" class="stat-value">–</span><span class="stat-label">average</span></div>
+        </div>
+
+        <div id="chart-section" class="results-block hidden">
+          <div class="card-label">Last 20 scores</div>
+          <div class="chart-wrap">
+            <svg id="trend-chart" viewBox="0 0 320 150" preserveAspectRatio="xMidYMid meet">
+              <line class="chart-grid" x1="12" y1="12.5" x2="308" y2="12.5"></line>
+              <line class="chart-grid" x1="12" y1="65" x2="308" y2="65"></line>
+              <line class="chart-grid" x1="12" y1="117.5" x2="308" y2="117.5"></line>
+              <line id="trend-avg" class="trend-avg" x1="12" y1="0" x2="308" y2="0"></line>
+              <polyline id="trend-line" class="trend-line" points=""></polyline>
+              <g id="trend-points"></g>
+            </svg>
+          </div>
+        </div>
+
+        <div class="results-block">
+          <div class="card-label">Recent attempts</div>
+          <ul id="history-list" class="history-list"></ul>
+        </div>
+
+        <div class="history-actions">
+          <button id="btn-clear-history" class="btn btn-ghost">Clear history</button>
+          <button id="btn-back-main" class="btn btn-secondary">Back</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ═══════════════ SETTINGS SHEET ═══════════════ -->
+  <div id="settings-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="sheet-grabber" aria-hidden="true"></div>
+      <div class="modal-head">
+        <h3 id="settings-title">Gemini API key</h3>
+        <button id="btn-close-settings" class="icon-btn" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-sub">Stored only on this device. Get a free key at <span class="mono">aistudio.google.com</span>.</p>
+      <div class="key-row">
+        <input id="api-key-input" class="key-input" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off" />
+        <button id="btn-peek-key" class="icon-btn small" aria-label="Show / hide key">👁</button>
+      </div>
+      <p id="key-status" class="key-status"></p>
+      <div class="modal-actions">
+        <button id="btn-clear-key" class="btn btn-ghost">Clear</button>
+        <button id="btn-save-key" class="btn btn-primary">Save key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/topics.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
