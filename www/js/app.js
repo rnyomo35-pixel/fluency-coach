@@ -791,7 +791,9 @@
       });
     } catch (netErr) {
       if (netErr && netErr.name === "AbortError") throw netErr;
-      throw new Error("Can't reach the Gemini service — check your internet and try again.");
+      const failure = new Error("Can't reach the Gemini service — check your internet and try again.");
+      failure.retryable = true; // a dropped request is worth one more try
+      throw failure;
     }
 
     if (!res.ok) {
@@ -803,8 +805,18 @@
         if (raw && res.status !== 403 && res.status !== 401) message = "Gemini: " + raw;
       } catch (_) {}
       const failure = new Error(message);
+      failure.status = res.status;
       failure.retryNextModel =
         res.status === 404 || /no longer available|not found|not supported|deprecated/i.test(raw);
+      /* Capacity spikes are temporary and route to different pools per model,
+         so these are worth a quick retry and then the other model. */
+      failure.retryable =
+        res.status === 429 ||
+        res.status === 500 ||
+        res.status === 502 ||
+        res.status === 503 ||
+        res.status === 504 ||
+        /high demand|overloaded|try again later|UNAVAILABLE|RESOURCE_EXHAUSTED|capacity/i.test(raw);
       throw failure;
     }
 
@@ -851,19 +863,31 @@
     const timeout = setTimeout(() => controller.abort(), RESP_TIME_LIMIT_MS);
 
     try {
+      /* Two models × two attempts. A busy model gets one short retry, then the
+         backup model (a different capacity pool); a dead key or a bad request
+         still fails immediately instead of hammering the API. */
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       let data = null;
       let lastError = null;
-      for (let i = 0; i < GEMINI_MODELS.length; i++) {
-        try {
-          data = await requestEvaluation(GEMINI_MODELS[i], body, apiKey, controller.signal);
-          lastError = null;
-          break;
-        } catch (err) {
-          lastError = err;
-          if (!err || !err.retryNextModel) throw err;
+      for (let i = 0; i < GEMINI_MODELS.length && !data; i++) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            data = await requestEvaluation(GEMINI_MODELS[i], body, apiKey, controller.signal);
+            lastError = null;
+            break;
+          } catch (err) {
+            lastError = err;
+            if (!err || err.name === "AbortError") throw err;
+            if (!err.retryable && !err.retryNextModel) throw err;
+            if (err.retryable && attempt === 0) {
+              await sleep(650);
+              continue;
+            }
+            break; // out of patience for this model: try the next id
+          }
         }
       }
-      if (lastError) throw lastError;
+      if (!data) throw lastError;
 
       const candidate = data && data.candidates && data.candidates[0];
       if (candidate && candidate.finishReason && candidate.finishReason !== "STOP") {
@@ -901,7 +925,13 @@
           : err && err.message
           ? err.message
           : String(err);
-      note(msg, true, 5200);
+      /* A capacity spike is not the learner's fault: say it plainly and leave
+         the line up (it clears on the next attempt) instead of flashing it. */
+      if (err && err.retryable) {
+        note("Gemini is at capacity right now — both models were tried twice. Your attempt just needs a re-run in a moment.", true, 0);
+      } else {
+        note(msg, true, 5200);
+      }
     } finally {
       clearTimeout(timeout);
       state.evaluating = false;
