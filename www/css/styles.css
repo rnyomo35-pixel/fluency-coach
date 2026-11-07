@@ -144,20 +144,20 @@ body {
 
 .topic-text {
   margin-block: auto;        /* the topic breathes in the middle of the stage */
-  font-size: 25px;
-  line-height: 1.32;
-  font-weight: 600;
-  letter-spacing: -0.021em;
+  font-size: clamp(30px, 8.2vw, 36px);
+  line-height: 1.22;
+  font-weight: 620;
+  letter-spacing: -0.028em;
   min-height: 92px;
   overflow-wrap: anywhere;   /* long single words wrap instead of overflowing */
   text-wrap: pretty;
 }
 .topic-text.placeholder {
-  font-size: 15.5px;
+  font-size: 17.5px;
   font-weight: 400;
-  line-height: 1.55;
-  letter-spacing: 0;
-  max-width: 32ch;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  max-width: 30ch;
   color: var(--dim);
 }
 
