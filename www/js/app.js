@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════
    10-Second English Fluency Coach — app logic
    Flow: random topic → strict 10s speech capture → auto-stop →
-        Gemini 2.5 Flash evaluation (structured JSON) → scorecard
+        Gemini evaluation (structured JSON) → scorecard
    ════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -11,8 +11,12 @@
   const KEY_STORAGE = "gemini_api_key";          // localStorage key
   const MODE_KEY = "practice_mode";              // localStorage key (seconds: 10 | 30 | 60)
   const ALLOWED_MODES = [10, 30, 60];
-  const GEMINI_ENDPOINT =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+  /* Current GA model first; Google retires ids over time, so a retired one
+     (404 / "no longer available") falls through to the backup instead of
+     failing the learner's attempt. */
+  const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+  const geminiUrl = (model) =>
+    "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   const RESP_TIME_LIMIT_MS = 20_000;
   const HISTORY_KEY = "session_history";    // localStorage key
   const HISTORY_MAX = 100;                  // stored attempts cap
@@ -774,6 +778,43 @@
     ].join("\n");
   }
 
+  /* One generateContent call. Only a retired model (404, or an explicit
+     "no longer available" message) is worth retrying on the next id. */
+  async function requestEvaluation(model, body, apiKey, signal) {
+    let res;
+    try {
+      res = await fetch(geminiUrl(model) + "?key=" + encodeURIComponent(apiKey), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal,
+      });
+    } catch (netErr) {
+      if (netErr && netErr.name === "AbortError") throw netErr;
+      throw new Error("Can't reach the Gemini service — check your internet and try again.");
+    }
+
+    if (!res.ok) {
+      let raw = "";
+      let message = friendlyGeminiHttpStatus(res.status);
+      try {
+        const err = await res.json();
+        raw = (err && err.error && err.error.message) || "";
+        if (raw && res.status !== 403 && res.status !== 401) message = "Gemini: " + raw;
+      } catch (_) {}
+      const failure = new Error(message);
+      failure.retryNextModel =
+        res.status === 404 || /no longer available|not found|not supported|deprecated/i.test(raw);
+      throw failure;
+    }
+
+    try {
+      return await res.json();
+    } catch (_) {
+      throw new Error("Gemini returned a malformed response body.");
+    }
+  }
+
   async function evaluateWithGemini(transcript, session) {
     const topic = session.topic;
     const apiKey = getApiKey();
@@ -799,7 +840,8 @@
         },
       ],
       generationConfig: {
-        temperature: 0.7,
+        /* no sampling knobs: Gemini 3.x ignores/removes them, the schema is
+           what keeps the answer machine-readable */
         responseMimeType: "application/json",
         responseSchema: GEMINI_SCHEMA,
       },
@@ -809,36 +851,19 @@
     const timeout = setTimeout(() => controller.abort(), RESP_TIME_LIMIT_MS);
 
     try {
-      let res;
-      try {
-        res = await fetch(GEMINI_ENDPOINT + "?key=" + encodeURIComponent(apiKey), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
-      } catch (netErr) {
-        if (netErr && netErr.name === "AbortError") throw netErr;
-        throw new Error("Can't reach the Gemini service — check your internet and try again.");
-      }
-
-      if (!res.ok) {
-        let message = friendlyGeminiHttpStatus(res.status);
+      let data = null;
+      let lastError = null;
+      for (let i = 0; i < GEMINI_MODELS.length; i++) {
         try {
-          const err = await res.json();
-          if (err && err.error && err.error.message && res.status !== 403 && res.status !== 401) {
-            message = "Gemini: " + err.error.message;
-          }
-        } catch (_) {}
-        throw new Error(message);
+          data = await requestEvaluation(GEMINI_MODELS[i], body, apiKey, controller.signal);
+          lastError = null;
+          break;
+        } catch (err) {
+          lastError = err;
+          if (!err || !err.retryNextModel) throw err;
+        }
       }
-
-      let data;
-      try {
-        data = await res.json();
-      } catch (_) {
-        throw new Error("Gemini returned a malformed response body.");
-      }
+      if (lastError) throw lastError;
 
       const candidate = data && data.candidates && data.candidates[0];
       if (candidate && candidate.finishReason && candidate.finishReason !== "STOP") {
