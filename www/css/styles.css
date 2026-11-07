@@ -6,23 +6,24 @@
    ════════════════════════════════════════════════════════ */
 
 :root {
-  --bg: #0b0b0d;
-  --surface: #151517;
-  --surface-2: #1c1c1f;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.17);
-  --fill: rgba(255, 255, 255, 0.05);
-  --fill-strong: rgba(255, 255, 255, 0.09);
+  /* Warm graphite, not blue-black: the whole surface reads as printed stock. */
+  --bg: #0c0b0a;
+  --surface: #14120f;
+  --surface-2: #1a1713;
+  --line: rgba(255, 244, 224, 0.075);
+  --line-strong: rgba(255, 244, 224, 0.16);
+  --fill: rgba(255, 244, 224, 0.045);
+  --fill-strong: rgba(255, 244, 224, 0.085);
 
-  --text: #ecebe7;
-  --dim: #a5a49e;
-  --faint: #86857f;
+  --text: #f4f0e6;
+  --dim: #b2a996;
+  --faint: #8b8271;
 
-  --accent: #e6e0d0;      /* paper: the only accent in the app */
-  --accent-ink: #14130f;
-  --rec: #c9735f;         /* recording reads as clay, not neon */
-  --rec-ink: #fdf3ef;
-  --danger: #e08d8a;
+  --accent: #d8c39a;      /* brass: the only accent in the app */
+  --accent-ink: #17130c;
+  --rec: #b96a52;         /* recording reads as fired clay, not neon */
+  --rec-ink: #fdf1ec;
+  --danger: #d98a80;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
@@ -30,9 +31,12 @@
   --t-ui: 180ms;
   --t-sheet: 400ms;
 
-  --radius: 18px;
-  --radius-inner: 12px;
+  --radius: 20px;
+  --radius-inner: 13px;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+  /* New York on iOS, Iowan/Georgia elsewhere: an editorial display face */
+  --serif: ui-serif, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -53,9 +57,16 @@ body {
   position: relative;
   overflow-x: hidden;
   min-height: 100dvh;
+  /* one static falloff of light from the top — no second layer, no animation */
+  background:
+    radial-gradient(130% 70% at 50% -10%, rgba(216, 195, 154, 0.075), transparent 58%),
+    linear-gradient(180deg, #0e0c0a 0%, #0b0a09 58%, #090807 100%);
+  background-attachment: fixed;
 }
 
 .app {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   max-width: 480px;
@@ -115,9 +126,9 @@ body {
 
 /* ───────── Type ───────── */
 .eyebrow {
-  font-size: 11px;
-  font-weight: 550;
-  letter-spacing: 0.09em;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--faint);
 }
@@ -128,11 +139,8 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 14px;
-  padding: 20px 20px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
+  gap: 16px;
+  padding: 22px 22px 18px;
 }
 .hero-head {
   display: flex;
@@ -144,15 +152,17 @@ body {
 
 .topic-text {
   margin-block: auto;        /* the topic breathes in the middle of the stage */
+  font-family: var(--serif);
   font-size: clamp(30px, 8.2vw, 36px);
-  line-height: 1.22;
-  font-weight: 620;
-  letter-spacing: -0.028em;
+  line-height: 1.16;
+  font-weight: 500;
+  letter-spacing: -0.012em;
   min-height: 92px;
   overflow-wrap: anywhere;   /* long single words wrap instead of overflowing */
   text-wrap: pretty;
 }
 .topic-text.placeholder {
+  font-family: var(--sans);
   font-size: 17.5px;
   font-weight: 400;
   line-height: 1.5;
@@ -198,8 +208,16 @@ body {
 .btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .btn:disabled:active { transform: none; }
 
-.btn-primary { background: var(--accent); color: var(--accent-ink); }
-.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
+.btn-primary {
+  background: linear-gradient(180deg, #eee2c6 0%, #d5bf95 100%);
+  color: var(--accent-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62), 0 14px 30px -18px rgba(216, 195, 154, 0.6);
+}
+.btn-secondary {
+  background: rgba(255, 244, 224, 0.035);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+}
 .btn-secondary:active { background: var(--fill); }
 .btn-ghost { background: transparent; color: var(--dim); border: 1px solid var(--line); }
 .btn-ghost:active { color: var(--text); background: var(--fill); }
@@ -242,10 +260,10 @@ body {
 
 .ring-track, .ring-progress {
   fill: none;
-  stroke-width: 5;
+  stroke-width: 3;
   stroke-linecap: round;
 }
-.ring-track { stroke: rgba(255, 255, 255, 0.09); }
+.ring-track { stroke: rgba(255, 244, 224, 0.08); }
 .ring-progress { stroke: var(--accent); stroke-dasharray: 326.7; stroke-dashoffset: 0; }
 
 .timer-center {
@@ -258,11 +276,12 @@ body {
   gap: 4px;
 }
 .timer-seconds {
-  font-size: 54px;
-  font-weight: 600;
+  font-family: var(--serif);
+  font-size: 58px;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  font-variant-numeric: lining-nums tabular-nums;
   color: var(--text);
 }
 .timer-unit {
@@ -323,6 +342,7 @@ body {
   padding: 3px;
   border: 1px solid var(--line);
   border-radius: var(--radius-inner);
+  background: rgba(0, 0, 0, 0.3);
 }
 .seg-thumb { display: none; }
 @supports selector(:has(*)) {
@@ -333,7 +353,8 @@ body {
     width: calc((100% - 6px) / 3);
     height: calc(100% - 6px);
     border-radius: 9px;
-    background: var(--accent);
+    background: linear-gradient(180deg, #f2e8d1, #d8c39a);
+    box-shadow: 0 5px 12px -5px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.55);
     transform: translateX(0);
     transition: transform var(--t-ui) var(--ease-out);
     will-change: transform;
@@ -361,22 +382,30 @@ body {
 
 /* ───────── Cards (scorecard, history) ───────── */
 /* Paint containment: repaint inside a card stays inside it instead of
-   invalidating the whole screen — the cheap way to keep the WebView smooth. */
-.card, .hero, .score-hero { contain: paint; }
+   invalidating the whole screen — the cheap way to keep the WebView smooth.
+   The surface itself: hairline border, a whisper of top light, deep soft shadow. */
+.card, .hero, .score-hero {
+  contain: paint;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 244, 224, 0.045), rgba(255, 244, 224, 0.006) 44%, transparent),
+    var(--surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 224, 0.06),
+    0 26px 50px -34px rgba(0, 0, 0, 0.95);
+}
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
+  gap: 10px;
+  padding: 20px;
 }
 .card-label {
-  font-size: 11px;
-  font-weight: 550;
-  letter-spacing: 0.09em;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--faint);
 }
@@ -385,20 +414,18 @@ body {
 .score-hero {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
+  gap: 18px;
+  padding: 20px;
 }
 .score-ring-wrap { width: 112px; height: 112px; flex-shrink: 0; }
 .score-ring { display: block; }
 .score-value {
-  font-size: 38px;
-  font-weight: 600;
+  font-family: var(--serif);
+  font-size: 42px;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.035em;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 .score-caption { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .score-caption h2 {
@@ -414,22 +441,33 @@ body {
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
-.heard-text { font-style: italic; color: var(--dim); }
-.c1-text { color: var(--text); font-weight: 450; }
+.heard-text {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.c1-text {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--text);
+}
 .feedback-text { color: var(--dim); }
 
-.c1-block { box-shadow: inset 2px 0 0 var(--accent); }
+.c1-block { padding-left: 22px; box-shadow: inset 1.5px 0 0 var(--accent); }
 
-.mistakes-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+/* Mistakes read as a set of ruled entries, not as tinted alarm boxes. */
+.mistakes-list { list-style: none; display: flex; flex-direction: column; gap: 0; }
 .mistakes-list li {
-  padding: 12px 14px;
-  border-radius: var(--radius-inner);
-  background: var(--surface-2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 13.5px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
+.mistakes-list li:first-child { border-top: none; padding-top: 2px; }
 .mistakes-list .m-err { color: var(--danger); font-weight: 600; }
 .mistakes-list .m-fix { color: var(--text); font-weight: 600; }
 .mistakes-list .m-why { display: block; margin-top: 4px; font-size: 12.5px; color: var(--faint); }
@@ -438,11 +476,11 @@ body {
   flex-shrink: 0;
   margin-left: 6px;
   padding: 2px 7px;
-  border-radius: 6px;
-  background: var(--fill-strong);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--dim);
   white-space: nowrap;
@@ -470,10 +508,10 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 14px 6px;
+  padding: 15px 6px;
   border-radius: var(--radius-inner);
   background: var(--surface-2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
 }
 .stat-value {
   font-size: 24px;
@@ -484,17 +522,17 @@ body {
 .stat-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
 
 .chart-wrap { padding: 4px 0 0; }
-.chart-grid { stroke: rgba(255, 255, 255, 0.08); stroke-dasharray: 3 4; stroke-width: 1; }
+.chart-grid { stroke: rgba(255, 244, 224, 0.1); stroke-dasharray: 3 4; stroke-width: 1; }
 .trend-line { fill: none; stroke: var(--accent); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
 .trend-point { fill: var(--bg); stroke: var(--accent); stroke-width: 2; }
 .trend-avg { stroke: rgba(255, 255, 255, 0.26); stroke-width: 1.25; stroke-dasharray: 4 4; }
 
 .history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .history-item {
-  padding: 12px 14px;
+  padding: 13px 14px;
   border-radius: var(--radius-inner);
   background: var(--surface-2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
 }
 .h-head { display: flex; gap: 12px; align-items: center; }
 .h-score {
@@ -557,10 +595,11 @@ body {
   width: 100%;
   max-width: 480px;
   padding: 8px 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
-  background: #17171a;
+  background: linear-gradient(180deg, #191612 0%, #14120f 100%);
   border: 1px solid var(--line);
   border-bottom: none;
   border-radius: 24px 24px 0 0;
+  box-shadow: 0 -28px 70px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 244, 224, 0.06);
   transform: translateY(100%);
   transition: transform var(--t-sheet) var(--ease-drawer);
   touch-action: none;
@@ -572,7 +611,7 @@ body {
   width: 36px; height: 4px;
   margin: 4px auto 16px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 244, 224, 0.2);
 }
 
 .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
@@ -588,7 +627,7 @@ body {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-inner);
-  background: #0f0f11;
+  background: #100e0c;
   color: var(--text);
   font-family: var(--mono);
   font-size: 16px;   /* 16px floor: below it iOS zooms the page on focus */
@@ -615,8 +654,9 @@ body {
   max-width: 84%;
   padding: 12px 18px;
   border-radius: var(--radius-inner);
-  background: #222226;
+  background: #1b1814;
   border: 1px solid var(--line);
+  box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 244, 224, 0.06);
   color: var(--text);
   font-size: 13.5px;
   line-height: 1.4;
