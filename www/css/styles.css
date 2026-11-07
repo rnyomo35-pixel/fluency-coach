@@ -73,7 +73,7 @@ body {
   flex: 1;
   flex-direction: column;
   gap: 12px;
-  animation: screen-in 220ms var(--ease-out) both;
+  animation: screen-in 180ms var(--ease-out) both;
 }
 @keyframes screen-in {
   from { opacity: 0; transform: translateY(5px); }
@@ -360,6 +360,10 @@ body {
 .mode-pill:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ───────── Cards (scorecard, history) ───────── */
+/* Paint containment: repaint inside a card stays inside it instead of
+   invalidating the whole screen — the cheap way to keep the WebView smooth. */
+.card, .hero, .score-hero { contain: paint; }
+
 .card {
   display: flex;
   flex-direction: column;
@@ -647,6 +651,7 @@ body {
 /* ───────── Accessibility ───────── */
 @media (prefers-reduced-motion: reduce) {
   .screen, .timer-section, .toast { animation: none !important; }
+  .ring-progress { transition: none !important; }
   .btn:active, .icon-btn:active, .mode-pill:active { transform: none; }
   .timer-wrap.final { transform: none; transition: none; }
   .seg-thumb { transition: none; }

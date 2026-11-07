@@ -103,7 +103,9 @@
   }
 
   function getApiKey() {
-    return (localStorage.getItem(KEY_STORAGE) || "").trim();
+    return (localStorage.getItem(KEY_STORAGE) || "")
+      .trim()
+      .replace(/^[\s"'`]+|[\s"'`]+$/g, ""); // tolerate a key pasted with quotes
   }
 
   const MIC_ICON =
@@ -135,7 +137,7 @@
     els.keyStatus.textContent = saved ? "✓ A key is saved on this device" : "No key saved yet";
     els.keyStatus.className = "key-status " + (saved ? "ok" : "");
     els.apiKeyInput.value = "";
-    els.apiKeyInput.placeholder = saved ? "● ● ● ● ● ● ● ● (key hidden)" : "AIza…";
+    els.apiKeyInput.placeholder = saved ? "● ● ● ● ● ● ● ● (key hidden)" : "Paste your API key";
     els.settingsModal.classList.add("is-open");
     els.settingsModal.setAttribute("aria-hidden", "false");
   }
@@ -227,15 +229,19 @@
       els.keyStatus.className = "key-status err";
       return;
     }
-    if (!/^AIza[0-9A-Za-z_\-]{10,}$/.test(value)) {
-      els.keyStatus.textContent = "That doesn't look like a Gemini key (should start with \"AIza\").";
+    /* Keys come in several shapes (the classic "AIza…" form is only one of
+       them), so the client only checks that the value is plausible — Google
+       decides whether it actually works. */
+    const cleaned = value.replace(/^[\s"'`]+|[\s"'`]+$/g, "");
+    if (cleaned.length < 15 || /\s/.test(cleaned)) {
+      els.keyStatus.textContent = "That key looks incomplete — paste the whole value.";
       els.keyStatus.className = "key-status err";
       return;
     }
-    localStorage.setItem(KEY_STORAGE, value);
+    localStorage.setItem(KEY_STORAGE, cleaned);
     els.keyStatus.textContent = "✓ Key saved — you're ready to coach!";
     els.keyStatus.className = "key-status ok";
-    keyLoadedForEdit = value;
+    keyLoadedForEdit = cleaned;
     els.apiKeyInput.value = "";
     els.apiKeyInput.placeholder = "● ● ● ● ● ● ● ● (key hidden)";
     setTimeout(closeSettings, 900);
@@ -245,7 +251,7 @@
     localStorage.removeItem(KEY_STORAGE);
     keyLoadedForEdit = "";
     els.apiKeyInput.value = "";
-    els.apiKeyInput.placeholder = "AIza…";
+    els.apiKeyInput.placeholder = "Paste your API key";
     els.keyStatus.textContent = "Key removed.";
     els.keyStatus.className = "key-status";
   });
@@ -311,19 +317,31 @@
     const started = performance.now();
     const TOTAL = state.durationMs;
     let stopped = false;
+    let lastSecond = -1;
+    let warned = false;
+    let closing = false;
+
+    /* The sweep is a single CSS transition with the exact duration instead of a
+       stroke write on every frame: the ring no longer costs any script, and it
+       stays smooth even when the main thread is busy with speech events. */
+    els.ringProgress.style.transition = "none";
+    els.ringProgress.style.strokeDashoffset = "0";
+    void els.ringProgress.getBoundingClientRect();
+    els.ringProgress.style.transition = "stroke-dashoffset " + TOTAL + "ms linear";
+    els.ringProgress.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
 
     function frame(now) {
       if (stopped) return;
       const elapsed = Math.min(now - started, TOTAL);
       const remaining = TOTAL - elapsed;
 
-      // ring sweep: 0 → full duration
-      els.ringProgress.style.strokeDashoffset =
-        String(RING_CIRCUMFERENCE * (elapsed / TOTAL));
-      els.timerSeconds.textContent = String(Math.ceil(remaining / 1000));
-
-      if (remaining <= 3000) els.timerSeconds.classList.add("warn");
-      if (remaining <= 1000) els.timerWrap.classList.add("final");
+      const sec = Math.ceil(remaining / 1000);
+      if (sec !== lastSecond) {           // one write per second, not per frame
+        els.timerSeconds.textContent = String(sec);
+        lastSecond = sec;
+      }
+      if (!warned && remaining <= 3000) { els.timerSeconds.classList.add("warn"); warned = true; }
+      if (!closing && remaining <= 1000) { els.timerWrap.classList.add("final"); closing = true; }
 
       if (elapsed >= TOTAL) {
         stopped = true;
@@ -339,6 +357,7 @@
       stopped = true;
       if (state.ring) cancelAnimationFrame(state.ring);
       state.ring = null;
+      els.ringProgress.style.transition = "none";
     };
   }
 
@@ -349,6 +368,7 @@
 
   function resetTimerUI() {
     cancelTimer();
+    els.ringProgress.style.transition = "none";
     els.ringProgress.style.strokeDashoffset = "0";
     els.timerSeconds.textContent = String(state.modeSec);
     els.timerSeconds.classList.remove("warn");
@@ -543,10 +563,22 @@
     setStartButton(recordingLabel, true);
 
     // Speech events are gated on session identity + liveness:
+    /* Speech partials can arrive faster than the display can use them; collapse
+       a burst into at most one DOM write per frame. */
+    let pendingTranscript = null;
+    let transcriptFrame = 0;
+    const flushTranscript = () => {
+      transcriptFrame = 0;
+      if (pendingTranscript === null) return;
+      const next = "🎙 " + (pendingTranscript || "Listening…");
+      if (els.liveTranscript.textContent !== next) els.liveTranscript.textContent = next;
+      pendingTranscript = null;
+    };
     const onPartial = (text) => {
       if (state.session !== session) return; // straggler from a dead session
       session.transcript = text;
-      els.liveTranscript.textContent = "🎙 " + (text || "Listening…");
+      pendingTranscript = text;
+      if (!transcriptFrame) transcriptFrame = requestAnimationFrame(flushTranscript);
     };
     const onError = (err) => {
       if (state.session !== session) return;
