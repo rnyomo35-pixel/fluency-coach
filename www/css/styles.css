@@ -638,15 +638,13 @@ body {
   .icon-btn:hover { color: var(--text); background: var(--fill); }
   .btn-secondary:hover, .btn-ghost:hover { background: var(--fill); color: var(--text); }
   .btn-quiet:hover { color: var(--dim); }
-  .mode-pill:not(.active):not(:disabled):hover { color: var(--text); }
 }
 
 /* ───────── Accessibility ───────── */
 @media (prefers-reduced-motion: reduce) {
   .screen, .timer-section { animation: none !important; }
   .ring-progress { transition: none !important; }
-  .btn:active, .icon-btn:active, .mode-pill:active { transform: none; }
+  .btn:active, .icon-btn:active { transform: none; }
   .timer-wrap.final { transform: none; transition: none; }
-  .seg-thumb { transition: none; }
   .modal { transition: opacity 200ms ease; }
 }
