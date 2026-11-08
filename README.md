@@ -1,7 +1,14 @@
-# 🎙 10-Second English Fluency Coach
+# 🎙 English Fluency Coach
 
-A native-iOS (Capacitor) app that fights overthinking: draw a random question,
-speak for a **strict 10 seconds**, and get an instant Gemini-powered scorecard.
+A native-iOS (Capacitor) app that fights overthinking: one tap, a topic that
+appears **at the same instant the clock starts** (no time to plan), speak
+freely, stop yourself when the thought is finished — then an instant
+Gemini-powered scorecard.
+
+- **Blind draw:** a single `Start Speaking (Blind Draw)` button reveals the
+  topic in the same tick as the stopwatch and the microphone.
+- **No hard cutoff:** an upward stopwatch with a soft 15–30 s target and a
+  `Stop & Evaluate` button — the attempt ends when *you* say it ends.
 
 - **App ID:** `com.fluencycoach.app` · WebView app (no server) · **Capacitor 6** + `@capacitor-community/speech-recognition`
 - **Works off-device for speech**, but evaluation needs internet (Gemini API).
@@ -16,10 +23,10 @@ speak for a **strict 10 seconds**, and get an instant Gemini-powered scorecard.
 ├─ capacitor.config.json         appId, webDir: "www"
 ├─ www/                          ← the app UI (vanilla JS, no bundler)
 │  ├─ index.html
-│  ├─ css/styles.css             dark slate + cyan/purple glow theme
+│  ├─ css/styles.css             warm graphite + brass premium theme
 │  └─ js/
 │     ├─ topics.js               50-question topic bank (avoid-repeat picker)
-│     └─ app.js                  timer, speech capture, Gemini call, scorecard
+│     └─ app.js                  stopwatch, speech capture, Gemini call, scorecard
 └─ ios/                          ← native Xcode workspace (generated)
    └─ App/
       ├─ App.xcworkspace         ← **open this file in Xcode**
@@ -31,12 +38,15 @@ speak for a **strict 10 seconds**, and get an instant Gemini-powered scorecard.
 
 1. **API key** — ⚙️ icon opens a secure modal; the Gemini key is saved in the
    device's `localStorage` (key `gemini_api_key`), masked with `type="password"`.
-2. **Random topic** — pulls from `www/js/topics.js` (daily life, philosophy,
-   tech, funny hypotheticals, science), never repeating the previous one.
-3. **Start 10s Speaking** — starts iOS native speech recognition on device
-   (`SFSpeechRecognizer` via the Capacitor plugin) and a `requestAnimationFrame`
-   countdown ring. At exactly 10.000 s the mic stops and the transcript is sent.
-4. **Gemini 2.5 Flash** — `generateContent` with `responseMimeType: application/json`
+2. **Blind draw** — the topic comes from `www/js/topics.js` (daily life,
+   philosophy, tech, funny hypotheticals, science), never repeating the previous
+   one, and is revealed only once the attempt has already begun.
+3. **Start Speaking (Blind Draw)** — one tap draws the topic, starts the upward
+   stopwatch and iOS native speech recognition (`SFSpeechRecognizer` via the
+   Capacitor plugin) in the same tick. The ring fills to a soft 20 s target and
+   the clock keeps counting; **Stop & Evaluate** ends the attempt whenever the
+   thought is finished, and the transcript is sent.
+4. **Gemini 3.8 Flash** (falls back to 3.5 Flash-Lite) — `generateContent` with `responseMimeType: application/json`
    and a strict `responseSchema` → `{ score (1–10), mistakes[], c1_rephrase, feedback }`.
 5. **Scorecard** — score ring, your transcript, mistakes with corrections,
    C1-level rephrase and a rapid-fire tip.

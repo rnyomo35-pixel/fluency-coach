@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════
-   10-Second English Fluency Coach — app logic
-   Flow: random topic → strict 10s speech capture → auto-stop →
-        Gemini evaluation (structured JSON) → scorecard
+   English Fluency Coach — app logic
+   Flow: blind topic draw → open-ended speech capture (the learner stops
+        it) → Gemini evaluation (structured JSON) → scorecard
    ════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -9,8 +9,7 @@
 
   /* ────────────── Constants & state ────────────── */
   const KEY_STORAGE = "gemini_api_key";          // localStorage key
-  const MODE_KEY = "practice_mode";              // localStorage key (seconds: 10 | 30 | 60)
-  const ALLOWED_MODES = [10, 30, 60];
+  const SOFT_TARGET_SEC = 20;                    // ring fills here; the clock keeps counting
   /* Current GA model first; Google retires ids over time, so a retired one
      (404 / "no longer available") falls through to the backup instead of
      failing the learner's attempt. */
@@ -28,15 +27,12 @@
     evaluating: false,
     lastResult: null,
     session: null, // live “pointer” to the active recording session object
-    modeSec: clampMode(loadModeSec()),
-    durationMs: 10_000,
     ring: null, // active rAF handle
   };
 
   /* ────────────── Element handles ────────────── */
   const $ = (id) => document.getElementById(id);
   const els = {
-    btnNewTopic: $("btn-new-topic"),
     btnNewTopic2: $("btn-new-topic-2"),
     topicText: $("topic-text"),
     btnStart: $("btn-start-speaking"),
@@ -65,8 +61,7 @@
     btnSaveKey: $("btn-save-key"),
     keyStatus: $("key-status"),
     flowNote: $("flow-note"),
-    /* practice modes + streak */
-    modeRow: $("mode-row"),
+    /* streak */
     streakChip: $("streak-chip"),
     /* history */
     btnHistory: $("btn-history"),
@@ -116,9 +111,10 @@
 
   const MIC_ICON =
     '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v3"></path></svg>';
-  const recordingLabel =
-    '<span class="btn-spinner"></span><span>Recording… speak now!</span>';
+  const STOP_ICON =
+    '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.5"></rect></svg>';
   const evaluatingLabel = '<span class="btn-spinner"></span><span>Evaluating with Gemini…</span>';
+  const stopLabel = STOP_ICON + '<span>Stop &amp; Evaluate</span>';
 
   function setStartButton(label, disabled) {
     els.btnStart.innerHTML = label;
@@ -126,12 +122,12 @@
   }
 
   function buildStartLabel() {
-    return MIC_ICON + '<span>Start ' + state.modeSec + 's Speaking</span>';
+    return MIC_ICON + '<span>Start Speaking (Blind Draw)</span>';
   }
 
   function resetStartButton() {
     els.btnStart.classList.remove("recording");
-    setStartButton(buildStartLabel(), !state.topic);
+    setStartButton(buildStartLabel(), false);
   }
 
   /* ────────────── Settings modal (API key) ────────────── */
@@ -279,23 +275,14 @@
   });
 
   /* ────────────── Topics ────────────── */
-  els.btnNewTopic.addEventListener("click", pickNewTopic);
-  els.btnNewTopic2.addEventListener("click", pickNewTopic);
+  /* There is no read-ahead screen any more: a topic exists only as part of a
+     live attempt, drawn at the same instant the clock and the mic start. */
+  els.btnNewTopic2.addEventListener("click", () => startSpeakingFlow());
 
-  function pickNewTopic() {
-    // Never change the topic mid-session: the recorder and the pending
-    // evaluation both reference the captured topic.
-    if (state.recording || state.evaluating) {
-      note("Finish the current attempt first! ⏳", true, 2200);
-      return;
-    }
-    state.topic = getRandomTopic(state.topic);
-    els.topicText.textContent = state.topic;
+  function revealTopic(topic) {
+    els.topicText.textContent = topic;
     els.topicText.classList.remove("placeholder");
-    showFlowScreen();
-    resetStartButton();
-
-    // fresh animation for the topic swap
+    // fresh animation for every draw
     els.topicText.style.animation = "none";
     void els.topicText.offsetWidth;
     els.topicText.style.animation = "topicIn .45s cubic-bezier(.2,.9,.3,1.2)";
@@ -316,69 +303,57 @@
     "@keyframes topicIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }";
   document.head.appendChild(style);
 
-  /* ────────────── The strict 10-second timer ────────────── */
-  let timerCancel = null;
+  /* ────────────── The stopwatch: counts up, never cuts you off ────────────── */
+  let stopwatchStop = null;
 
-  function startTimer(onDone) {
+  function startStopwatch() {
     const started = performance.now();
-    const TOTAL = state.durationMs;
+    let lastSec = -1;
     let stopped = false;
-    let lastSecond = -1;
-    let warned = false;
-    let closing = false;
 
-    /* The sweep is a single CSS transition with the exact duration instead of a
-       stroke write on every frame: the ring no longer costs any script, and it
-       stays smooth even when the main thread is busy with speech events. */
+    /* The ring fills over the soft target in one CSS transition (no per-frame
+       stroke writes), then stays full: past 20 s the attempt is simply good. */
     els.ringProgress.style.transition = "none";
-    els.ringProgress.style.strokeDashoffset = "0";
-    void els.ringProgress.getBoundingClientRect();
-    els.ringProgress.style.transition = "stroke-dashoffset " + TOTAL + "ms linear";
     els.ringProgress.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+    void els.ringProgress.getBoundingClientRect();
+    els.ringProgress.style.transition =
+      "stroke-dashoffset " + SOFT_TARGET_SEC * 1000 + "ms linear";
+    els.ringProgress.style.strokeDashoffset = "0";
 
     function frame(now) {
       if (stopped) return;
-      const elapsed = Math.min(now - started, TOTAL);
-      const remaining = TOTAL - elapsed;
-
-      const sec = Math.ceil(remaining / 1000);
-      if (sec !== lastSecond) {           // one write per second, not per frame
+      const sec = Math.floor((now - started) / 1000);
+      if (sec !== lastSec) {           // one write per second, not per frame
         els.timerSeconds.textContent = String(sec);
-        lastSecond = sec;
+        lastSec = sec;
       }
-      if (!warned && remaining <= 3000) { els.timerSeconds.classList.add("warn"); warned = true; }
-      if (!closing && remaining <= 1000) { els.timerWrap.classList.add("final"); closing = true; }
-
-      if (elapsed >= TOTAL) {
-        stopped = true;
-        state.ring = null;
-        onDone();
-        return;
-      }
+      if (sec >= SOFT_TARGET_SEC) els.timerWrap.classList.add("good");
       state.ring = requestAnimationFrame(frame);
     }
 
     state.ring = requestAnimationFrame(frame);
-    timerCancel = () => {
+    stopwatchStop = () => {
       stopped = true;
       if (state.ring) cancelAnimationFrame(state.ring);
       state.ring = null;
       els.ringProgress.style.transition = "none";
+      return performance.now() - started;
     };
   }
 
-  function cancelTimer() {
-    if (timerCancel) timerCancel();
-    timerCancel = null;
+  function stopStopwatch() {
+    const ms = stopwatchStop ? stopwatchStop() : 0;
+    stopwatchStop = null;
+    return ms;
   }
 
   function resetTimerUI() {
-    cancelTimer();
+    stopStopwatch();
     els.ringProgress.style.transition = "none";
-    els.ringProgress.style.strokeDashoffset = "0";
-    els.timerSeconds.textContent = String(state.modeSec);
+    els.ringProgress.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+    els.timerSeconds.textContent = "0";
     els.timerSeconds.classList.remove("warn");
-    els.timerWrap.classList.remove("final");
+    els.timerWrap.classList.remove("final", "good");
     els.liveTranscript.textContent = "Listening…";
     els.liveTranscript.classList.remove("active");
   }
@@ -416,7 +391,7 @@
     const startOpts = () => ({
       language: "en-US",
       maxResults: 1,
-      prompt: "Speak for exactly " + state.modeSec + " seconds!",
+      prompt: "Speak freely — tap Stop when your thought is finished.",
       partialResults: true,
       popup: false,            // never a native dialog on top of the app
     });
@@ -577,35 +552,51 @@
   const DRAIN_MS = 450; // grace window for late final transcripts after stop()
   const drain = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  els.btnStart.addEventListener("click", startSpeakingFlow);
-
-  async function startSpeakingFlow() {
-    if (state.recording || state.evaluating) return;
-
-    if (!state.topic) {
-      note("Draw a topic first! 🎲", true);
+  els.btnStart.addEventListener("click", () => {
+    /* One button, two jobs: start the blind attempt, or end it when the
+       learner has finished the thought. */
+    if (state.recording && state.session && state.session.requestStop) {
+      setStartButton(evaluatingLabel, true);
+      state.session.requestStop();
       return;
     }
+    startSpeakingFlow();
+  });
+
+  async function startSpeakingFlow(sameTopic) {
+    if (state.recording || state.evaluating) return;
+
     if (!getApiKey()) {
-      note("Save your Gemini API key first ⚙️", true);
+      note("Save your Gemini API key first ⚙️", true, 6000);
       openSettings();
       return;
     }
 
-    const session = {
-      topic: state.topic,
-      durationSec: state.modeSec,
-      transcript: "",
-      error: null,
-    };
-    state.recording = true;
-    state.session = session;
+    /* Blind draw: the topic is chosen, revealed and timed in the SAME task as
+       the tap — there is no window in which an answer could be planned. */
+    const topic = sameTopic || getRandomTopic(state.topic);
+    state.topic = topic;
+    showFlowScreen();
     resetTimerUI();
+    revealTopic(topic);
     els.timerSection.classList.remove("hidden");
     els.liveTranscript.classList.add("active");
     els.liveTranscript.textContent = "Listening…";
     els.btnStart.classList.add("recording");
-    setStartButton(recordingLabel, true);
+    setStartButton(stopLabel, false);
+
+    const session = { topic: topic, transcript: "", error: null, elapsedSec: 0 };
+    state.recording = true;
+    state.session = session;
+
+    let resolveStop = null;
+    const stopRequested = new Promise((resolve) => { resolveStop = resolve; });
+    session.requestStop = (err) => {
+      if (err && !session.error) session.error = err;
+      resolveStop();
+    };
+
+    startStopwatch(); // clock and microphone start in the same tick as the tap
 
     // Speech events are gated on session identity + liveness:
     /* Speech partials can arrive faster than the display can use them; collapse
@@ -625,62 +616,24 @@
       pendingTranscript = text;
       if (!transcriptFrame) transcriptFrame = requestAnimationFrame(flushTranscript);
     };
-    /* The clock is its own promise, settled by the cutoff or by a dead engine.
-       It no longer waits for the engine's start(): on iOS that promise resolves
-       whenever the native side decides, which is why the countdown used to
-       stand still behind a "Listening…" label. */
-    let settled = false;
-    let clockRunning = false;
-    let settleClock = null;
-    const clockDone = new Promise((resolve) => { settleClock = resolve; });
-
-    const settle = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(clockFallback);
-      settleClock();
-    };
-
-    const startClock = () => {
-      if (clockRunning || settled) return;
-      clockRunning = true;
-      clearTimeout(clockFallback);
-      startTimer(settle); // the cutoff calls settle() at the exact duration
-    };
-
-    // Safety net: whatever the engine is doing, the window starts in 3s.
-    const clockFallback = setTimeout(startClock, 3000);
-
-    const onError = (err) => {
-      if (state.session !== session) return;
-      if (!session.error) session.error = err;
-      settle(); // a dead engine ends the attempt instead of idling for 60s
-    };
-
     let stopCapture = () => {};
     try {
-      stopCapture = await beginSpeechCapture(onPartial, onError, startClock);
+      stopCapture = await beginSpeechCapture(onPartial, session.requestStop, () => {});
     } catch (err) {
-      onError("Speech capture crashed: " + (err && err.message ? err.message : String(err)));
+      session.requestStop(
+        "Speech capture crashed: " + (err && err.message ? err.message : String(err))
+      );
     }
 
-    await clockDone;
+    // The attempt ends when the learner taps Stop — or when the engine dies.
+    await stopRequested;
     if (state.session !== session) { // aborted meanwhile
       try { stopCapture(); } catch (_) {}
       return;
     }
+    session.elapsedSec = Math.max(1, Math.round(stopStopwatch() / 1000));
 
-    if (session.error) {
-      try { stopCapture(); } catch (_) {}
-      await killCaptureRunnable();
-      await teardownSession(session);
-      resetStartButton();
-      els.liveTranscript.textContent = "";
-      note(session.error, true, 9000);
-      return;
-    }
-
-    // ── Cutoff: stop the mic, then DRAIN. iOS/Safari can flush the final
+    // ── Stop: end the mic, then DRAIN. iOS/Safari can flush the final
     // utterance shortly after stop(); the session stays live (and therefore
     // mutable) during that window so the trailing words are not lost — then
     // we tear it down, so stragglers can never leak into the next attempt.
@@ -708,7 +661,6 @@
     if (nativeSpeech) {
       try { nativeSpeech.removeAllListeners && nativeSpeech.removeAllListeners(); } catch (_) {}
     }
-    cancelTimer();
     resetTimerUI();
     els.timerSection.classList.add("hidden");
     state.recording = false;
@@ -726,7 +678,7 @@
     const final = (session.transcript || "").trim();
 
     if (!final || final.replace(/[^a-z0-9']/gi, "").length < 4) {
-      note("No speech detected in the " + session.durationSec + "s window — try again! 🎤", true, 4500);
+      note("No speech detected — tap start and speak right away! 🎤", true, 4500);
       els.liveTranscript.textContent = "";
       return;
     }
@@ -760,16 +712,16 @@
     required: ["score", "mistakes", "c1_rephrase", "feedback"],
   };
 
-  function buildPrompt(topic, transcript) {
-    const dur = state.modeSec;
+  function buildPrompt(topic, transcript, seconds) {
+    const dur = seconds;
     return [
       "You are an expert English fluency coach helping a learner build C1-level spontaneous speaking.",
-      "The learner was given a random topic and had exactly " + dur + " seconds to speak off the top of their head, without preparation.",
+      "The learner drew this topic blind (no preparation time: the topic appeared at the same instant the clock started) and spoke off the top of their head for about " + dur + " seconds, stopping when the thought was finished.",
       "",
       'TOPIC: "' + topic + '"',
       'WHAT THE LEARNER SAID (speech-to-text of the ' + dur + '-second attempt): "' + transcript + '"',
       "",
-      "Evaluate this " + dur + "-second speaking burst. Judge fluency, word choice, grammar accuracy and how well they developed the thought in the given window — do NOT penalise brevity itself.",
+      "Evaluate this spontaneous speaking burst. Judge fluency, word choice, grammar accuracy and how well they developed the thought in the time they used — judge quality, not length: a tight 20-second answer can be excellent, and rambling is not a virtue.",
       "Score 1-10 for fluency and grammatical accuracy (10 = flawless, native-like speed; 1 = barely intelligible).",
       'List genuine grammar, vocabulary or expression mistakes as objects {error, type, correction, explanation}; "type" must be one of "grammar", "vocabulary", "expression". If the utterance was clean, return an empty array.',
       "c1_rephrase: a natural, smooth C1-level way to express the same idea the way a native speaker would say it.",
@@ -848,7 +800,7 @@
       contents: [
         {
           role: "user",
-          parts: [{ text: buildPrompt(topic, transcript) }],
+          parts: [{ text: buildPrompt(topic, transcript, session.elapsedSec) }],
         },
       ],
       generationConfig: {
@@ -1233,45 +1185,8 @@
       .replace(/"/g, "&quot;");
   }
 
-  /* ────────────── Retry on same topic ────────────── */
-  els.btnRetry.addEventListener("click", () => {
-    showFlowScreen();
-    resetStartButton();
-    els.liveTranscript.textContent = "";
-  });
-
-  /* ────────────── Practice modes (10 / 30 / 60 seconds) ────────────── */
-
-  function loadModeSec() {
-    const n = parseInt(localStorage.getItem(MODE_KEY), 10);
-    return isNaN(n) ? 10 : n;
-  }
-
-  function clampMode(sec) {
-    return ALLOWED_MODES.includes(sec) ? sec : 10;
-  }
-
-  function applyPracticeMode(sec, persist) {
-    state.modeSec = clampMode(sec);
-    state.durationMs = state.modeSec * 1000;
-
-    els.modeRow.querySelectorAll(".mode-pill").forEach((pill) => {
-      pill.classList.toggle("active", String(state.modeSec) === pill.dataset.sec);
-    });
-
-    if (persist) {
-      try { localStorage.setItem(MODE_KEY, String(state.modeSec)); } catch (_) {}
-    }
-
-    if (!state.recording && !state.evaluating) resetTimerUI();
-    resetStartButton();
-  }
-
-  els.modeRow.addEventListener("click", (e) => {
-    const pill = e.target.closest(".mode-pill");
-    if (!pill || state.recording || state.evaluating) return;
-    applyPracticeMode(parseInt(pill.dataset.sec, 10), true);
-  });
+  /* ────────────── Retry: same topic, immediately (no reading time) ────────────── */
+  els.btnRetry.addEventListener("click", () => startSpeakingFlow(state.topic));
 
   /* ────────────── Daily streak (derived from saved sessions) ────────────── */
 
@@ -1320,7 +1235,7 @@
   }
 
   /* ────────────── Init ────────────── */
-  state.durationMs = state.modeSec * 1000;
-  applyPracticeMode(state.modeSec, false);
+  resetTimerUI();
+  resetStartButton();
   renderStreakChip(loadHistory());
 })();

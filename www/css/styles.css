@@ -99,7 +99,7 @@ body {
   margin: 0 -8px -4px 0;
 }
 
-.btn, .icon-btn, .mode-pill {
+.btn, .icon-btn {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -311,11 +311,7 @@ body {
   padding-top: 4px;
 }
 .dock-inner { display: flex; flex-direction: column; gap: 10px; }
-.dock-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
 
-/* While recording the length selector steps aside — one decision at a time. */
-#screen-flow:has(#timer-section:not(.hidden)) .dock-head,
-#screen-flow:has(#timer-section:not(.hidden)) .mode-row { display: none; }
 /* recording: the topic steps back to a two-line label, the ring gets the room */
 #screen-flow:has(#timer-section:not(.hidden)) .hero { flex: 0 0 auto; padding: 15px 18px 14px; }
 #screen-flow:has(#timer-section:not(.hidden)) .topic-text {
@@ -333,52 +329,23 @@ body {
 }
 #screen-flow:has(#timer-section:not(.hidden)) .btn-quiet { display: none; }
 
-/* ───────── Segmented control (thumb slides) ───────── */
-.mode-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  min-height: 46px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-inner);
-  background: rgba(0, 0, 0, 0.3);
+/* Past the soft target the ring is full and warms up: the attempt is a good
+   one, the clock simply keeps counting. */
+.timer-wrap.good .ring-progress { filter: drop-shadow(0 0 7px rgba(216, 195, 154, 0.5)); }
+.timer-wrap.good .timer-seconds { color: var(--accent); }
+.soft-target {
+  margin-top: -6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+  text-align: center;
+  transition: color 280ms ease;
 }
-.seg-thumb { display: none; }
-@supports selector(:has(*)) {
-  .seg-thumb {
-    display: block;
-    position: absolute;
-    top: 3px; left: 3px;
-    width: calc((100% - 6px) / 3);
-    height: calc(100% - 6px);
-    border-radius: 9px;
-    background: linear-gradient(180deg, #f2e8d1, #d8c39a);
-    box-shadow: 0 5px 12px -5px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.55);
-    transform: translateX(0);
-    transition: transform var(--t-ui) var(--ease-out);
-    will-change: transform;
-  }
-  .mode-row:has([data-sec="30"].active) .seg-thumb { transform: translateX(100%); }
-  .mode-row:has([data-sec="60"].active) .seg-thumb { transform: translateX(200%); }
-}
-.mode-pill {
-  position: relative;
-  z-index: 1;
-  min-height: 40px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--dim);
-  font-size: 14px;
-  font-weight: 550;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: color var(--t-ui) ease, transform var(--t-press) var(--ease-out);
-}
-.mode-pill:active { transform: scale(0.97); }
-.mode-pill.active { color: var(--accent-ink); font-weight: 650; }
-.mode-pill:disabled { opacity: 0.35; cursor: not-allowed; }
+.timer-wrap.good ~ .soft-target { color: var(--accent); }
+
+
 
 /* ───────── Cards (scorecard, history) ───────── */
 /* Paint containment: repaint inside a card stays inside it instead of
