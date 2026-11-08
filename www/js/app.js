@@ -18,6 +18,8 @@
     "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   const RESP_TIME_LIMIT_MS = 20_000;
   const HISTORY_KEY = "session_history";    // localStorage key
+  const VOCAB_KEY = "vocabulary";           // saved words & phrases
+  const VOCAB_MAX = 200;
   const HISTORY_MAX = 100;                  // stored attempts cap
   const TREND_MAX = 20;                     // points shown in the trend chart
 
@@ -26,6 +28,7 @@
     recording: false,
     evaluating: false,
     lastResult: null,
+    card: null, // snapshot the scorecard's "save to vocabulary" reads
     session: null, // live “pointer” to the active recording session object
     ring: null, // active rAF handle
   };
@@ -78,6 +81,28 @@
     trendPoints: $("trend-points"),
     trendAvg: $("trend-avg"),
     historyList: $("history-list"),
+    /* vocabulary */
+    btnVocab: $("btn-vocab"),
+    screenVocab: $("screen-vocab"),
+    btnVocabBack: $("btn-vocab-back"),
+    btnScoreBack: $("btn-score-back"),
+    btnSaveC1: $("btn-save-c1"),
+    flashTerm: $("flash-term"),
+    flashDef: $("flash-def"),
+    flashEmpty: $("flash-empty"),
+    flashActions: $("flash-actions"),
+    flashGrade: $("flash-grade"),
+    btnFlashReveal: $("btn-flash-reveal"),
+    btnFlashGot: $("btn-flash-got"),
+    btnFlashAgain: $("btn-flash-again"),
+    flashProgress: $("flash-progress"),
+    vocabTerm: $("vocab-term"),
+    vocabDef: $("vocab-def"),
+    vocabStatus: $("vocab-status"),
+    btnVocabAdd: $("btn-vocab-add"),
+    vocabCount: $("vocab-count"),
+    vocabEmpty: $("vocab-empty"),
+    vocabList: $("vocab-list"),
   };
 
   const RING_CIRCUMFERENCE = 2 * Math.PI * 52; // r=52 → 326.73
@@ -288,14 +313,35 @@
     els.topicText.style.animation = "topicIn .45s cubic-bezier(.2,.9,.3,1.2)";
   }
 
-  function showFlowScreen() {
+  function hideAllScreens() {
+    els.screenFlow.classList.add("hidden");
     els.screenScore.classList.add("hidden");
+    els.screenHistory.classList.add("hidden");
+    els.screenVocab.classList.add("hidden");
+  }
+
+  function showFlowScreen() {
+    hideAllScreens();
     els.screenFlow.classList.remove("hidden");
   }
 
   function showScoreScreen() {
-    els.screenFlow.classList.add("hidden");
+    hideAllScreens();
     els.screenScore.classList.remove("hidden");
+  }
+
+  /* The way back from a scorecard: same screen the app opens on, topic cleared
+     so the next start is a fresh blind draw. */
+  const TOPIC_PLACEHOLDER = "Tap start — the topic appears the instant the clock starts.";
+  function goHome() {
+    if (state.recording || state.evaluating) return;
+    state.topic = "";
+    els.topicText.textContent = TOPIC_PLACEHOLDER;
+    els.topicText.classList.add("placeholder");
+    els.timerSection.classList.add("hidden");
+    resetTimerUI();
+    resetStartButton();
+    showFlowScreen();
   }
 
   const style = document.createElement("style");
@@ -984,6 +1030,15 @@
     els.c1Text.textContent = result.c1_rephrase || "—";
     els.feedbackText.textContent = result.feedback || "—";
 
+    /* Snapshot for "Save to vocabulary": held here so a click later cannot pick
+       up a newer session's wording. */
+    state.card = {
+      c1: String(result.c1_rephrase || "").trim(),
+      transcript: String(transcript || "").trim(),
+      topic: (session && session.topic) || "",
+    };
+    resetSaveC1Button();
+
     showScoreScreen();
   }
 
@@ -1031,10 +1086,9 @@
   }
 
   function goHistory() {
-    const history = loadHistory();
-    renderHistory(history);
-    els.screenFlow.classList.add("hidden");
-    els.screenScore.classList.add("hidden");
+    if (state.recording || state.evaluating) return;
+    renderHistory(loadHistory());
+    hideAllScreens();
     els.screenHistory.classList.remove("hidden");
   }
 
@@ -1233,6 +1287,223 @@
     }
     els.streakChip.innerHTML = html;
   }
+
+  /* ────────────── Vocabulary & flashcards (localStorage) ────────────── */
+
+  const flash = { deck: [], pos: 0, revealed: false };
+
+  function loadVocab() {
+    try {
+      const arr = JSON.parse(localStorage.getItem(VOCAB_KEY) || "[]");
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveVocabList(arr) {
+    try {
+      localStorage.setItem(VOCAB_KEY, JSON.stringify(arr.slice(0, VOCAB_MAX)));
+    } catch (_) {}
+  }
+
+  function addVocabEntry(term, definition, source, topic) {
+    const clean = String(term || "").trim();
+    if (!clean) return { ok: false, reason: "empty" };
+    const list = loadVocab();
+    if (list.some((e) => String(e.term || "").toLowerCase() === clean.toLowerCase())) {
+      return { ok: false, reason: "dup" };
+    }
+    list.unshift({
+      id: "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      term: clean.slice(0, 240),
+      definition: String(definition || "").trim().slice(0, 300),
+      source: source || "manual",
+      topic: String(topic || "").slice(0, 160),
+      t: Date.now(),
+      box: 0,   // 0 = still learning, 3 = learned
+      seen: 0,
+    });
+    saveVocabList(list);
+    return { ok: true, list: list };
+  }
+
+  function resetSaveC1Button() {
+    els.btnSaveC1.disabled = false;
+    els.btnSaveC1.classList.remove("saved");
+    els.btnSaveC1.querySelector("span").textContent = "Save to vocabulary";
+  }
+
+  function vocabStatus(msg, isErr) {
+    els.vocabStatus.textContent = msg;
+    els.vocabStatus.className = "key-status" + (isErr ? " err" : msg ? " ok" : "");
+  }
+
+  function openVocab() {
+    if (state.recording || state.evaluating) return; // never hide a live attempt
+    renderVocabScreen();
+    hideAllScreens();
+    els.screenVocab.classList.remove("hidden");
+  }
+
+  function renderVocabScreen() {
+    buildFlashDeck();
+    renderFlash();
+    renderVocabList();
+    vocabStatus("", false);
+  }
+
+  /* Weakest first: unseen cards, then the lowest graded, so a round opens with
+     what actually needs the work. */
+  function buildFlashDeck() {
+    flash.deck = loadVocab()
+      .slice()
+      .sort((a, b) => (a.box || 0) - (b.box || 0) || (a.t || 0) - (b.t || 0))
+      .map((e) => e.id);
+    flash.pos = 0;
+    flash.revealed = false;
+  }
+
+  function currentFlashEntry() {
+    const id = flash.deck[flash.pos];
+    return loadVocab().find((e) => e.id === id) || null;
+  }
+
+  function renderFlash() {
+    const total = loadVocab().length;
+    const hasCards = total > 0;
+
+    els.flashEmpty.classList.toggle("hidden", hasCards);
+    els.flashTerm.classList.toggle("hidden", !hasCards);
+    els.flashActions.classList.toggle("hidden", !hasCards);
+    els.flashDef.classList.add("hidden");
+    els.flashGrade.classList.add("hidden");
+    els.btnFlashReveal.classList.remove("hidden");
+    els.btnFlashReveal.textContent = "Show definition";
+
+    if (!hasCards) {
+      els.flashTerm.textContent = "";
+      els.flashProgress.textContent = "";
+      return;
+    }
+
+    if (flash.pos >= flash.deck.length) {
+      els.flashTerm.textContent = "Round complete.";
+      els.btnFlashReveal.textContent = "Review again";
+      els.flashProgress.textContent =
+        total + (total === 1 ? " card saved" : " cards saved") + " · nice work";
+      return;
+    }
+
+    const entry = currentFlashEntry();
+    if (!entry) {
+      flash.pos += 1;
+      renderFlash();
+      return;
+    }
+
+    els.flashTerm.textContent = entry.term;
+    els.flashDef.textContent = entry.definition || "No definition saved.";
+    const left = flash.deck.length - flash.pos - 1;
+    els.flashProgress.textContent =
+      flash.pos + 1 + " / " + flash.deck.length + " · " + left + " left in this round";
+  }
+
+  function gradeFlash(known) {
+    const entry = currentFlashEntry();
+    if (!entry) return;
+    const list = loadVocab();
+    const i = list.findIndex((e) => e.id === entry.id);
+    if (i >= 0) {
+      list[i].seen = (list[i].seen || 0) + 1;
+      list[i].box = known ? Math.min(3, (list[i].box || 0) + 1) : 0;
+      list[i].last = Date.now();
+      saveVocabList(list);
+    }
+    if (!known) flash.deck.push(entry.id); // comes back later in this round
+    flash.pos += 1;
+    flash.revealed = false;
+    renderFlash();
+    renderVocabList();
+  }
+
+  function renderVocabList() {
+    const list = loadVocab();
+    els.vocabCount.textContent = list.length ? "· " + list.length : "";
+    els.vocabEmpty.classList.toggle("hidden", list.length > 0);
+    els.vocabList.innerHTML = "";
+
+    list.forEach((e) => {
+      const li = document.createElement("li");
+      li.className = "vocab-item";
+      li.innerHTML =
+        '<div class="v-main">' +
+          '<div class="v-term">' + escapeHtml(e.term) + "</div>" +
+          (e.definition ? '<div class="v-def">' + escapeHtml(e.definition) + "</div>" : "") +
+          '<div class="v-meta">' + ((e.box || 0) >= 3 ? "learned" : "learning") +
+            " · " + (e.source === "c1" ? "from a session" : "added by you") + "</div>" +
+        "</div>" +
+        '<button class="icon-btn v-del" aria-label="Delete">×</button>';
+      li.querySelector(".v-del").addEventListener("click", () => deleteVocab(e.id));
+      els.vocabList.appendChild(li);
+    });
+  }
+
+  function deleteVocab(id) {
+    saveVocabList(loadVocab().filter((e) => e.id !== id));
+    buildFlashDeck();
+    renderFlash();
+    renderVocabList();
+  }
+
+  els.btnVocab.addEventListener("click", openVocab);
+  els.btnVocabBack.addEventListener("click", goHome);
+  els.btnScoreBack.addEventListener("click", goHome);
+
+  els.btnFlashReveal.addEventListener("click", () => {
+    if (flash.pos >= flash.deck.length) { // the button reads "Review again"
+      buildFlashDeck();
+      renderFlash();
+      return;
+    }
+    if (flash.revealed) return;
+    flash.revealed = true;
+    els.flashDef.classList.remove("hidden");
+    els.btnFlashReveal.classList.add("hidden");
+    els.flashGrade.classList.remove("hidden");
+  });
+
+  els.btnFlashGot.addEventListener("click", () => gradeFlash(true));
+  els.btnFlashAgain.addEventListener("click", () => gradeFlash(false));
+
+  els.btnVocabAdd.addEventListener("click", () => {
+    const res = addVocabEntry(els.vocabTerm.value, els.vocabDef.value, "manual", "");
+    if (!res.ok) {
+      vocabStatus(
+        res.reason === "dup" ? "That phrase is already saved." : "Type a word or phrase first.",
+        true
+      );
+      return;
+    }
+    els.vocabTerm.value = "";
+    els.vocabDef.value = "";
+    renderVocabScreen();
+    vocabStatus("Saved ✓", false);
+  });
+
+  els.btnSaveC1.addEventListener("click", () => {
+    const card = state.card;
+    if (!card || !card.c1) return;
+    const definition = card.transcript
+      ? "You said: “" + card.transcript.slice(0, 180) + "”"
+      : "";
+    const res = addVocabEntry(card.c1, definition, "c1", card.topic);
+    els.btnSaveC1.disabled = true;
+    els.btnSaveC1.classList.add("saved");
+    els.btnSaveC1.querySelector("span").textContent = res.ok
+      ? "Saved to vocabulary ✓"
+      : "Already saved ✓";
+  });
 
   /* ────────────── Init ────────────── */
   resetTimerUI();

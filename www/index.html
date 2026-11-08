@@ -16,6 +16,12 @@
     <!-- ═══════════════ FLOW / HOME ═══════════════ -->
     <main id="screen-flow" class="screen">
       <div class="top-actions">
+        <button id="btn-vocab" class="icon-btn" aria-label="Vocabulary">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v18H5.5A1.5 1.5 0 0 1 4 19.5z"></path>
+            <path d="M9 3v18"></path>
+          </svg>
+        </button>
         <button id="btn-history" class="icon-btn" aria-label="Session history">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="9"></circle>
@@ -74,6 +80,14 @@
 
     <!-- ═══════════════ SCORECARD ═══════════════ -->
     <main id="screen-scorecard" class="screen hidden">
+      <div class="top-actions top-actions-left">
+        <button id="btn-score-back" class="icon-btn" aria-label="Back to start">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 5l-7 7 7 7"></path>
+          </svg>
+        </button>
+      </div>
+
       <section class="score-hero">
         <div class="score-ring-wrap">
           <svg class="timer-ring score-ring" viewBox="0 0 120 120" aria-hidden="true">
@@ -105,6 +119,12 @@
       <section class="card c1-block">
         <div class="card-label">Try this next time</div>
         <p id="c1-text" class="c1-text"></p>
+        <button id="btn-save-c1" class="btn btn-quiet save-vocab">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"></path>
+          </svg>
+          <span>Save to vocabulary</span>
+        </button>
       </section>
 
       <section class="card feedback-block">
@@ -157,6 +177,46 @@
           <button id="btn-clear-history" class="btn btn-ghost">Clear history</button>
           <button id="btn-back-main" class="btn btn-secondary">Back</button>
         </div>
+      </section>
+    </main>
+
+    <!-- ═══════════════ VOCABULARY ═══════════════ -->
+    <main id="screen-vocab" class="screen hidden">
+      <div class="top-actions top-actions-left">
+        <button id="btn-vocab-back" class="icon-btn" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 5l-7 7 7 7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <section class="card flash-card">
+        <div class="card-label">Flashcards</div>
+        <p id="flash-term" class="flash-term"></p>
+        <p id="flash-def" class="flash-def hidden"></p>
+        <p id="flash-empty" class="flash-empty">Nothing saved yet — save a C1 phrase after an attempt, or add one below.</p>
+        <div id="flash-actions" class="flash-actions hidden">
+          <button id="btn-flash-reveal" class="btn btn-secondary">Show definition</button>
+          <div id="flash-grade" class="flash-grade hidden">
+            <button id="btn-flash-again" class="btn btn-ghost">Study again</button>
+            <button id="btn-flash-got" class="btn btn-primary">Got it</button>
+          </div>
+        </div>
+        <p id="flash-progress" class="flash-progress"></p>
+      </section>
+
+      <section class="card">
+        <div class="card-label">Add a word or phrase</div>
+        <input id="vocab-term" class="key-input vocab-input" placeholder="Word or phrase" autocomplete="off" autocapitalize="sentences" />
+        <input id="vocab-def" class="key-input vocab-input" placeholder="Meaning / definition" autocomplete="off" />
+        <p id="vocab-status" class="key-status"></p>
+        <button id="btn-vocab-add" class="btn btn-secondary">Add to vocabulary</button>
+      </section>
+
+      <section class="card">
+        <div class="card-label">Saved <span id="vocab-count" class="vocab-count"></span></div>
+        <ul id="vocab-list" class="vocab-list"></ul>
+        <p id="vocab-empty" class="history-empty hidden">Your saved words and phrases will appear here.</p>
       </section>
     </main>
   </div>

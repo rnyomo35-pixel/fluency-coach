@@ -648,3 +648,48 @@ body {
   .timer-wrap.final { transform: none; transition: none; }
   .modal { transition: opacity 200ms ease; }
 }
+
+/* ───────── Vocabulary & flashcards ───────── */
+.top-actions-left { justify-content: flex-start; margin: 0 0 -4px -8px; }
+
+.flash-card { gap: 12px; }
+.flash-term {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.flash-def {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+  animation: fade-only 220ms ease-out both;
+}
+.flash-empty { font-size: 13.5px; line-height: 1.5; color: var(--faint); }
+.flash-actions { display: flex; flex-direction: column; gap: 10px; }
+.flash-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.flash-actions .btn { min-height: 48px; font-size: 14.5px; }
+.flash-progress { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+
+.vocab-input { font-family: var(--sans); margin-bottom: 10px; }
+.vocab-count { color: var(--faint); }
+.vocab-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.vocab-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 10px 12px 14px;
+  border-radius: var(--radius-inner);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.v-main { flex: 1; min-width: 0; }
+.v-term { font-size: 14.5px; font-weight: 550; line-height: 1.4; overflow-wrap: anywhere; }
+.v-def { margin-top: 3px; font-size: 13px; line-height: 1.45; color: var(--dim); overflow-wrap: anywhere; }
+.v-meta { margin-top: 5px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+.v-del { flex-shrink: 0; width: 34px; height: 34px; font-size: 18px; }
+.save-vocab { align-self: flex-start; margin-top: 2px; }
