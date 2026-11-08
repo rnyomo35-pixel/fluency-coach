@@ -142,14 +142,18 @@
   let evalTicker = null;
 
   /* A visible clock on the wait: the learner can see the request is alive
-     instead of staring at a frozen label. */
+     instead of staring at a frozen label. The spinner is rendered ONCE and only
+     its sibling text is rewritten — rebuilding the button each tick restarted
+     the CSS animation, which is what made it stutter. */
   function startEvalTicker() {
     const started = performance.now();
-    const paint = () => {
-      const sec = Math.round((performance.now() - started) / 1000);
-      setStartButton('<span class="btn-spinner"></span><span>Evaluating… ' + sec + 's</span>', true);
-    };
     clearInterval(evalTicker);
+    setStartButton('<span class="btn-spinner"></span><span>Evaluating… 0s</span>', true);
+    const count = els.btnStart.querySelector("span:last-child");
+    const paint = () => {
+      if (!count) return;
+      count.textContent = "Evaluating… " + Math.round((performance.now() - started) / 1000) + "s";
+    };
     paint();
     evalTicker = setInterval(paint, 1000);
   }

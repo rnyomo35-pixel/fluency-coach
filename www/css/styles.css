@@ -710,3 +710,54 @@ body {
   text-transform: uppercase;
   color: var(--accent);
 }
+
+/* ───────── Start state: the card introduces the drill ───────── */
+/* The placeholder only existed to occupy the topic slot; the intro says the
+   same thing far better, so the empty line never shows. */
+.topic-text.placeholder { display: none; }
+
+.start-intro {
+  margin-block: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.start-title {
+  font-family: var(--serif);
+  font-size: clamp(27px, 7.4vw, 33px);
+  font-weight: 500;
+  line-height: 1.14;
+  letter-spacing: -0.018em;
+  color: var(--text);
+  text-wrap: balance;
+}
+.start-sub {
+  max-width: 32ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--dim);
+}
+.start-steps { list-style: none; margin-top: 2px; }
+.start-steps li {
+  display: flex;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+.start-steps li:first-child { border-top: none; padding-top: 2px; }
+.step-n {
+  flex-shrink: 0;
+  padding-top: 1px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+/* While a session runs the intro steps aside and the topic takes the stage. */
+#screen-flow:has(#timer-section:not(.hidden)) #start-intro { display: none; }
+
+/* A steady spin, painted on the compositor so a busy main thread cannot jitter it. */
+.btn-spinner { will-change: transform; }
