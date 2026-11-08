@@ -16,7 +16,11 @@
   const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
   const geminiUrl = (model) =>
     "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
-  const RESP_TIME_LIMIT_MS = 60_000; // Gemini 3.x thinks before answering; 20 s cut real replies off
+  /* The evaluation streams its answer: the first tokens arrive in seconds, so
+     the app can tell "still working" from "stuck" instead of throwing away a
+     slow-but-healthy reply with one fixed wall-clock cap. */
+  const IDLE_TIMEOUT_MS = 30_000;   // no data for this long = the stream is dead
+  const TOTAL_TIMEOUT_MS = 120_000; // absolute ceiling for a single request
   const HISTORY_KEY = "session_history";    // localStorage key
   const VOCAB_KEY = "vocabulary";           // saved words & phrases
   const VOCAB_MAX = 200;
@@ -135,6 +139,25 @@
   const STOP_ICON =
     '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.5"></rect></svg>';
   const evaluatingLabel = '<span class="btn-spinner"></span><span>Evaluating with Gemini…</span>';
+  let evalTicker = null;
+
+  /* A visible clock on the wait: the learner can see the request is alive
+     instead of staring at a frozen label. */
+  function startEvalTicker() {
+    const started = performance.now();
+    const paint = () => {
+      const sec = Math.round((performance.now() - started) / 1000);
+      setStartButton('<span class="btn-spinner"></span><span>Evaluating… ' + sec + 's</span>', true);
+    };
+    clearInterval(evalTicker);
+    paint();
+    evalTicker = setInterval(paint, 1000);
+  }
+
+  function stopEvalTicker() {
+    clearInterval(evalTicker);
+    evalTicker = null;
+  }
   const stopLabel = STOP_ICON + '<span>Stop &amp; Evaluate</span>';
 
   function setStartButton(label, disabled) {
@@ -725,8 +748,8 @@
       return;
     }
 
-    setStartButton(evaluatingLabel, true);
     state.evaluating = true;
+    startEvalTicker();
     await evaluateWithGemini(final, session);
   }
 
@@ -785,19 +808,50 @@
     ].join("\n");
   }
 
-  /* One generateContent call. Only a retired model (404, or an explicit
-     "no longer available" message) is worth retrying on the next id. */
-  async function requestEvaluation(model, body, apiKey, signal) {
+  /* One streamed generateContent call; resolves with the stitched JSON text.
+     A silent stream is abandoned after IDLE_TIMEOUT_MS, a live one may run as
+     long as it needs. Only a retired model (404 / "no longer available") or a
+     stall is worth moving to another model id. */
+  async function requestEvaluation(model, body, apiKey) {
+    const ctrl = new AbortController();
+    let abortReason = null;
+    let idle = setTimeout(() => { abortReason = "idle"; ctrl.abort(); }, IDLE_TIMEOUT_MS);
+    const hard = setTimeout(() => { abortReason = "total"; ctrl.abort(); }, TOTAL_TIMEOUT_MS);
+    const bump = () => {
+      clearTimeout(idle);
+      idle = setTimeout(() => { abortReason = "idle"; ctrl.abort(); }, IDLE_TIMEOUT_MS);
+    };
+    const cleanup = () => { clearTimeout(idle); clearTimeout(hard); };
+
+    /* A timeout is reported with the model name and the reason, so the next
+       report says what actually happened instead of "too long". */
+    const timeoutFailure = () => {
+      const failure = new Error(
+        abortReason === "total"
+          ? "Gemini ran past " + Math.round(TOTAL_TIMEOUT_MS / 1000) + " s on " + model + "."
+          : "Gemini went quiet on " + model + " (no data for " + Math.round(IDLE_TIMEOUT_MS / 1000) + " s)."
+      );
+      failure.retryable = true;
+      failure.skipSameModel = true;
+      failure.timeout = true;
+      return failure;
+    };
+
+    const url =
+      geminiUrl(model).replace(":generateContent", ":streamGenerateContent") +
+      "?alt=sse&key=" + encodeURIComponent(apiKey);
+
     let res;
     try {
-      res = await fetch(geminiUrl(model) + "?key=" + encodeURIComponent(apiKey), {
+      res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-        signal,
+        signal: ctrl.signal,
       });
     } catch (netErr) {
-      if (netErr && netErr.name === "AbortError") throw netErr;
+      cleanup();
+      if (ctrl.signal.aborted || (netErr && netErr.name === "AbortError")) throw timeoutFailure();
       const failure = new Error("Can't reach the Gemini service — check your internet and try again.");
       failure.retryable = true; // a dropped request is worth one more try
       throw failure;
@@ -811,6 +865,7 @@
         raw = (err && err.error && err.error.message) || "";
         if (raw && res.status !== 403 && res.status !== 401) message = "Gemini: " + raw;
       } catch (_) {}
+      cleanup();
       const failure = new Error(message);
       failure.status = res.status;
       failure.retryNextModel =
@@ -827,11 +882,63 @@
       throw failure;
     }
 
+    /* Server-sent events: each `data:` payload is a JSON chunk whose text
+       parts concatenate into the final answer. Reasoning parts carry
+       `thought: true` and must never enter the JSON we parse. */
+    let text = "";
+    const takeEvent = (payload) => {
+      let json;
+      try {
+        json = JSON.parse(payload);
+      } catch (_) {
+        return;
+      }
+      const cand = json && json.candidates && json.candidates[0];
+      const parts = (cand && cand.content && cand.content.parts) || [];
+      parts.forEach((p) => {
+        if (p && p.text && !p.thought) text += p.text;
+      });
+    };
+
     try {
-      return await res.json();
-    } catch (_) {
-      throw new Error("Gemini returned a malformed response body.");
+      if (res.body && res.body.getReader) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let dataLines = [];
+        for (;;) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          bump(); // data is flowing: the stream is alive
+          buffer += decoder.decode(chunk.value, { stream: true });
+          let nl;
+          while ((nl = buffer.indexOf("\n")) >= 0) {
+            const line = buffer.slice(0, nl).replace(/\r$/, "");
+            buffer = buffer.slice(nl + 1);
+            if (line === "") {
+              if (dataLines.length) { takeEvent(dataLines.join("\n")); dataLines = []; }
+            } else if (line.indexOf("data:") === 0) {
+              dataLines.push(line.slice(5).trim());
+            }
+          }
+        }
+        if (dataLines.length) takeEvent(dataLines.join("\n"));
+      } else {
+        takeEvent(await res.text()); // no ReadableStream in this webview
+      }
+    } catch (err) {
+      if (ctrl.signal.aborted || (err && err.name === "AbortError")) throw timeoutFailure();
+      throw err;
+    } finally {
+      cleanup();
     }
+
+    if (!text) {
+      const failure = new Error("Gemini returned no evaluation content.");
+      failure.retryable = true;
+      throw failure;
+    }
+    return text;
   }
 
   async function evaluateWithGemini(transcript, session) {
@@ -869,26 +976,24 @@
       },
     };
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), RESP_TIME_LIMIT_MS);
-
     try {
-      /* Two models × two attempts. A busy model gets one short retry, then the
-         backup model (a different capacity pool); a dead key or a bad request
-         still fails immediately instead of hammering the API. */
+      /* Two models × two attempts. A silent stream skips the second try on the
+         same id (that model is not coming back), a busy one gets a quick
+         retry, and a dead key or a bad request fails immediately. */
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-      let data = null;
+      let text = null;
       let lastError = null;
-      for (let i = 0; i < GEMINI_MODELS.length && !data; i++) {
+      for (let i = 0; i < GEMINI_MODELS.length && !text; i++) {
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            data = await requestEvaluation(GEMINI_MODELS[i], body, apiKey, controller.signal);
+            text = await requestEvaluation(GEMINI_MODELS[i], body, apiKey);
             lastError = null;
             break;
           } catch (err) {
             lastError = err;
-            if (!err || err.name === "AbortError") throw err;
+            if (!err) throw err;
             if (!err.retryable && !err.retryNextModel) throw err;
+            if (err.skipSameModel) break; // no point waiting twice for a silent model
             if (err.retryable && attempt === 0) {
               await sleep(650);
               continue;
@@ -897,25 +1002,7 @@
           }
         }
       }
-      if (!data) throw lastError;
-
-      const candidate = data && data.candidates && data.candidates[0];
-      if (candidate && candidate.finishReason && candidate.finishReason !== "STOP") {
-        throw new Error(
-          candidate.finishReason === "SAFETY"
-            ? "Gemini blocked this evaluation on safety grounds. Try a friendlier phrasing."
-            : "Gemini stopped early (" + candidate.finishReason + "). Try again."
-        );
-      }
-
-      const text =
-        candidate &&
-        candidate.content &&
-        candidate.content.parts &&
-        candidate.content.parts[0] &&
-        candidate.content.parts[0].text;
-
-      if (!text) throw new Error("Gemini returned no evaluation content.");
+      if (!text) throw lastError;
 
       let parsed;
       try {
@@ -931,19 +1018,19 @@
     } catch (err) {
       const msg =
         err && err.name === "AbortError"
-          ? "Gemini took too long to answer. Try again."
+          ? "The evaluation was interrupted — try again."
           : err && err.message
           ? err.message
           : String(err);
-      /* A capacity spike is not the learner's fault: say it plainly and leave
-         the line up (it clears on the next attempt) instead of flashing it. */
-      if (err && err.retryable) {
-        note("Gemini is at capacity right now — both models were tried twice. Your attempt just needs a re-run in a moment.", true, 0);
+      /* Name what happened (timeout, busy model, bad key) and leave the line up
+         until the next attempt instead of flashing it. */
+      if (err && (err.timeout || err.retryable)) {
+        note(msg + " Both models were tried — give it another go in a moment.", true, 0);
       } else {
         note(msg, true, 5200);
       }
     } finally {
-      clearTimeout(timeout);
+      stopEvalTicker();
       state.evaluating = false;
       resetStartButton();
     }
