@@ -119,12 +119,7 @@
       <section class="card c1-block">
         <div class="card-label">Try this next time</div>
         <p id="c1-text" class="c1-text"></p>
-        <button id="btn-save-c1" class="btn btn-quiet save-vocab">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14M5 12h14"></path>
-          </svg>
-          <span>Save to vocabulary</span>
-        </button>
+        <p id="save-c1-hint" class="vocab-added"></p>
       </section>
 
       <section class="card feedback-block">
@@ -193,8 +188,9 @@
       <section class="card flash-card">
         <div class="card-label">Flashcards</div>
         <p id="flash-term" class="flash-term"></p>
+        <p id="flash-said" class="flash-said hidden"></p>
         <p id="flash-def" class="flash-def hidden"></p>
-        <p id="flash-empty" class="flash-empty">Nothing saved yet — save a C1 phrase after an attempt, or add one below.</p>
+        <p id="flash-empty" class="flash-empty">Nothing here yet — finish one attempt and your vocabulary collects itself.</p>
         <div id="flash-actions" class="flash-actions hidden">
           <button id="btn-flash-reveal" class="btn btn-secondary">Show definition</button>
           <div id="flash-grade" class="flash-grade hidden">
@@ -206,17 +202,9 @@
       </section>
 
       <section class="card">
-        <div class="card-label">Add a word or phrase</div>
-        <input id="vocab-term" class="key-input vocab-input" placeholder="Word or phrase" autocomplete="off" autocapitalize="sentences" />
-        <input id="vocab-def" class="key-input vocab-input" placeholder="Meaning / definition" autocomplete="off" />
-        <p id="vocab-status" class="key-status"></p>
-        <button id="btn-vocab-add" class="btn btn-secondary">Add to vocabulary</button>
-      </section>
-
-      <section class="card">
         <div class="card-label">Saved <span id="vocab-count" class="vocab-count"></span></div>
         <ul id="vocab-list" class="vocab-list"></ul>
-        <p id="vocab-empty" class="history-empty hidden">Your saved words and phrases will appear here.</p>
+        <p id="vocab-empty" class="history-empty hidden">Auto-collected phrases will appear here.</p>
       </section>
     </main>
   </div>

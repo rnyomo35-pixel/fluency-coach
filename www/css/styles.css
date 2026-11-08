@@ -693,3 +693,20 @@ body {
 .v-meta { margin-top: 5px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
 .v-del { flex-shrink: 0; width: 34px; height: 34px; font-size: 18px; }
 .save-vocab { align-self: flex-start; margin-top: 2px; }
+
+/* ───────── Auto-collected vocabulary ───────── */
+.flash-said {
+  font-size: 13.5px;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--faint);
+  overflow-wrap: anywhere;
+}
+.v-said { margin-top: 2px; font-size: 12.5px; line-height: 1.45; font-style: italic; color: var(--faint); overflow-wrap: anywhere; }
+.vocab-added {
+  margin-top: 2px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}

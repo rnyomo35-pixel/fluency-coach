@@ -16,7 +16,7 @@
   const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
   const geminiUrl = (model) =>
     "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
-  const RESP_TIME_LIMIT_MS = 20_000;
+  const RESP_TIME_LIMIT_MS = 60_000; // Gemini 3.x thinks before answering; 20 s cut real replies off
   const HISTORY_KEY = "session_history";    // localStorage key
   const VOCAB_KEY = "vocabulary";           // saved words & phrases
   const VOCAB_MAX = 200;
@@ -28,7 +28,6 @@
     recording: false,
     evaluating: false,
     lastResult: null,
-    card: null, // snapshot the scorecard's "save to vocabulary" reads
     session: null, // live “pointer” to the active recording session object
     ring: null, // active rAF handle
   };
@@ -86,7 +85,8 @@
     screenVocab: $("screen-vocab"),
     btnVocabBack: $("btn-vocab-back"),
     btnScoreBack: $("btn-score-back"),
-    btnSaveC1: $("btn-save-c1"),
+    saveC1Hint: $("save-c1-hint"),
+    flashSaid: $("flash-said"),
     flashTerm: $("flash-term"),
     flashDef: $("flash-def"),
     flashEmpty: $("flash-empty"),
@@ -96,10 +96,6 @@
     btnFlashGot: $("btn-flash-got"),
     btnFlashAgain: $("btn-flash-again"),
     flashProgress: $("flash-progress"),
-    vocabTerm: $("vocab-term"),
-    vocabDef: $("vocab-def"),
-    vocabStatus: $("vocab-status"),
-    btnVocabAdd: $("btn-vocab-add"),
     vocabCount: $("vocab-count"),
     vocabEmpty: $("vocab-empty"),
     vocabList: $("vocab-list"),
@@ -754,8 +750,20 @@
       },
       c1_rephrase: { type: "STRING" },
       feedback: { type: "STRING" },
+      vocab: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            said: { type: "STRING" },
+            better: { type: "STRING" },
+            why: { type: "STRING" },
+          },
+          required: ["said", "better", "why"],
+        },
+      },
     },
-    required: ["score", "mistakes", "c1_rephrase", "feedback"],
+    required: ["score", "mistakes", "c1_rephrase", "feedback", "vocab"],
   };
 
   function buildPrompt(topic, transcript, seconds) {
@@ -772,6 +780,7 @@
       'List genuine grammar, vocabulary or expression mistakes as objects {error, type, correction, explanation}; "type" must be one of "grammar", "vocabulary", "expression". If the utterance was clean, return an empty array.',
       "c1_rephrase: a natural, smooth C1-level way to express the same idea the way a native speaker would say it.",
       "feedback: one short, encouraging, concrete tip for rapid-fire speaking.",
+      "vocab: 3-6 items worth learning from this attempt, as {said, better, why}. 'said' is the learner's own short fragment (quote it as spoken), 'better' is the natural C1-level way to say that, 'why' is a one-line explanation of what changed. Include awkward-but-grammatical phrasing, not only hard errors. Return an empty array only if the attempt had nothing worth keeping.",
       "Respond ONLY with JSON exactly matching the requested schema.",
     ].join("\n");
   }
@@ -851,7 +860,10 @@
       ],
       generationConfig: {
         /* no sampling knobs: Gemini 3.x ignores/removes them, the schema is
-           what keeps the answer machine-readable */
+           what keeps the answer machine-readable.
+           "low" thinking keeps a short evaluation quick: 3.8 Flash defaults to
+           "medium", which is what made replies outlast the HTTP timeout. */
+        thinkingConfig: { thinkingLevel: "low" },
         responseMimeType: "application/json",
         responseSchema: GEMINI_SCHEMA,
       },
@@ -965,6 +977,19 @@
             explanation: str(m.explanation, 300),
           }))
       : [];
+    /* The vocabulary log is built from this, so it is validated as strictly as
+       the score: a fragment without a C1 version is useless as a card. */
+    const vocab = Array.isArray(result.vocab)
+      ? result.vocab
+          .filter((v) => v && typeof v === "object" && !Array.isArray(v))
+          .slice(0, 6)
+          .map((v) => ({
+            said: str(v.said, 240),
+            better: str(v.better, 240),
+            why: str(v.why, 300),
+          }))
+          .filter((v) => v.better)
+      : [];
     let score = Number(result.score);
     if (!isFinite(score)) score = 5;
     return {
@@ -972,6 +997,7 @@
       mistakes: mistakes,
       c1_rephrase: str(result.c1_rephrase, 400),
       feedback: str(result.feedback, 300),
+      vocab: vocab,
     };
   }
 
@@ -1001,6 +1027,7 @@
 
     saveHistoryRecord(result, score, transcript, session);
     state.lastResult = { score: score };
+    vocabAddedThisAttempt = collectVocabFromResult(result, transcript, session);
 
     const mistakes = Array.isArray(result.mistakes) ? result.mistakes : [];
     els.mistakesList.innerHTML = "";
@@ -1030,14 +1057,12 @@
     els.c1Text.textContent = result.c1_rephrase || "—";
     els.feedbackText.textContent = result.feedback || "—";
 
-    /* Snapshot for "Save to vocabulary": held here so a click later cannot pick
-       up a newer session's wording. */
-    state.card = {
-      c1: String(result.c1_rephrase || "").trim(),
-      transcript: String(transcript || "").trim(),
-      topic: (session && session.topic) || "",
-    };
-    resetSaveC1Button();
+    /* The log fills itself before this screen appears — the line only reports
+       what happened, there is nothing to press. */
+    els.saveC1Hint.textContent = vocabAddedThisAttempt
+      ? "Auto-saved → Vocabulary · " + vocabAddedThisAttempt +
+        (vocabAddedThisAttempt === 1 ? " card" : " cards")
+      : "Vocabulary was already up to date";
 
     showScoreScreen();
   }
@@ -1307,37 +1332,48 @@
     } catch (_) {}
   }
 
-  function addVocabEntry(term, definition, source, topic) {
-    const clean = String(term || "").trim();
-    if (!clean) return { ok: false, reason: "empty" };
+  /* Cards are deduped by their C1 side: one improved phrase is one card, no
+     matter how many attempts produced it. */
+  function autoAddVocab(entries, topic) {
     const list = loadVocab();
-    if (list.some((e) => String(e.term || "").toLowerCase() === clean.toLowerCase())) {
-      return { ok: false, reason: "dup" };
-    }
-    list.unshift({
-      id: "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-      term: clean.slice(0, 240),
-      definition: String(definition || "").trim().slice(0, 300),
-      source: source || "manual",
-      topic: String(topic || "").slice(0, 160),
-      t: Date.now(),
-      box: 0,   // 0 = still learning, 3 = learned
-      seen: 0,
+    let added = 0;
+    entries.forEach((v) => {
+      const better = String((v && v.better) || "").trim();
+      if (!better) return;
+      if (list.some((e) => String(e.term || "").toLowerCase() === better.toLowerCase())) return;
+      list.unshift({
+        id: "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        term: better.slice(0, 240),
+        said: String((v && v.said) || "").trim().slice(0, 240),
+        definition: String((v && v.why) || "").trim().slice(0, 300),
+        source: (v && v.source) || "auto",
+        topic: String(topic || "").slice(0, 160),
+        t: Date.now(),
+        box: 0,   // 0 = still learning, 3 = learned
+        seen: 0,
+      });
+      added += 1;
     });
-    saveVocabList(list);
-    return { ok: true, list: list };
+    if (added) saveVocabList(list);
+    return added;
   }
 
-  function resetSaveC1Button() {
-    els.btnSaveC1.disabled = false;
-    els.btnSaveC1.classList.remove("saved");
-    els.btnSaveC1.querySelector("span").textContent = "Save to vocabulary";
+  /* Runs once per scorecard: Gemini's own vocabulary items plus the whole
+     answer's C1 rephrasing become cards, so nothing is left for the learner
+     to copy or press. */
+  function collectVocabFromResult(result, transcript, session) {
+    const entries = (Array.isArray(result.vocab) ? result.vocab : []).slice();
+    if (result.c1_rephrase) {
+      entries.push({
+        said: transcript,
+        better: result.c1_rephrase,
+        why: "A natural C1 version of your whole answer.",
+      });
+    }
+    return autoAddVocab(entries, session && session.topic);
   }
 
-  function vocabStatus(msg, isErr) {
-    els.vocabStatus.textContent = msg;
-    els.vocabStatus.className = "key-status" + (isErr ? " err" : msg ? " ok" : "");
-  }
+  let vocabAddedThisAttempt = 0;
 
   function openVocab() {
     if (state.recording || state.evaluating) return; // never hide a live attempt
@@ -1350,7 +1386,6 @@
     buildFlashDeck();
     renderFlash();
     renderVocabList();
-    vocabStatus("", false);
   }
 
   /* Weakest first: unseen cards, then the lowest graded, so a round opens with
@@ -1376,6 +1411,7 @@
     els.flashEmpty.classList.toggle("hidden", hasCards);
     els.flashTerm.classList.toggle("hidden", !hasCards);
     els.flashActions.classList.toggle("hidden", !hasCards);
+    els.flashSaid.classList.add("hidden");
     els.flashDef.classList.add("hidden");
     els.flashGrade.classList.add("hidden");
     els.btnFlashReveal.classList.remove("hidden");
@@ -1403,7 +1439,9 @@
     }
 
     els.flashTerm.textContent = entry.term;
-    els.flashDef.textContent = entry.definition || "No definition saved.";
+    els.flashSaid.textContent = entry.said ? "You said: “" + entry.said + "”" : "";
+    els.flashSaid.classList.toggle("hidden", !entry.said);
+    els.flashDef.textContent = entry.definition || "No note saved.";
     const left = flash.deck.length - flash.pos - 1;
     els.flashProgress.textContent =
       flash.pos + 1 + " / " + flash.deck.length + " · " + left + " left in this round";
@@ -1439,9 +1477,10 @@
       li.innerHTML =
         '<div class="v-main">' +
           '<div class="v-term">' + escapeHtml(e.term) + "</div>" +
+          (e.said ? '<div class="v-said">“' + escapeHtml(e.said) + '”</div>' : "") +
           (e.definition ? '<div class="v-def">' + escapeHtml(e.definition) + "</div>" : "") +
           '<div class="v-meta">' + ((e.box || 0) >= 3 ? "learned" : "learning") +
-            " · " + (e.source === "c1" ? "from a session" : "added by you") + "</div>" +
+            " · " + (e.source === "auto" ? "auto-collected" : "from a session") + "</div>" +
         "</div>" +
         '<button class="icon-btn v-del" aria-label="Delete">×</button>';
       li.querySelector(".v-del").addEventListener("click", () => deleteVocab(e.id));
@@ -1475,35 +1514,6 @@
 
   els.btnFlashGot.addEventListener("click", () => gradeFlash(true));
   els.btnFlashAgain.addEventListener("click", () => gradeFlash(false));
-
-  els.btnVocabAdd.addEventListener("click", () => {
-    const res = addVocabEntry(els.vocabTerm.value, els.vocabDef.value, "manual", "");
-    if (!res.ok) {
-      vocabStatus(
-        res.reason === "dup" ? "That phrase is already saved." : "Type a word or phrase first.",
-        true
-      );
-      return;
-    }
-    els.vocabTerm.value = "";
-    els.vocabDef.value = "";
-    renderVocabScreen();
-    vocabStatus("Saved ✓", false);
-  });
-
-  els.btnSaveC1.addEventListener("click", () => {
-    const card = state.card;
-    if (!card || !card.c1) return;
-    const definition = card.transcript
-      ? "You said: “" + card.transcript.slice(0, 180) + "”"
-      : "";
-    const res = addVocabEntry(card.c1, definition, "c1", card.topic);
-    els.btnSaveC1.disabled = true;
-    els.btnSaveC1.classList.add("saved");
-    els.btnSaveC1.querySelector("span").textContent = res.ok
-      ? "Saved to vocabulary ✓"
-      : "Already saved ✓";
-  });
 
   /* ────────────── Init ────────────── */
   resetTimerUI();
