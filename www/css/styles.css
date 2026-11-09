@@ -133,9 +133,9 @@ input { font: inherit; }
   padding: 12px 24px 0;
 }
 .practice-head {
-  height: 62px;
-  justify-content: flex-end;
-  padding: 10px 24px 0;
+  height: 64px;
+  justify-content: space-between;
+  padding: 14px 24px 0;
 }
 .wordmark {
   color: var(--cream);
@@ -211,7 +211,13 @@ input { font: inherit; }
 }
 
 /* ────────── 01 · practice ────────── */
-.practice-main .display { margin-top: 26px; }
+.practice-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-bottom: 8px;
+}
+.practice-main .display { margin-top: 18px; }
 .practice-main .subcopy { margin-top: 16px; }
 
 .streak {
@@ -235,7 +241,7 @@ input { font: inherit; }
   place-items: center;
   width: 198px;
   height: 198px;
-  margin: 30px auto 0;
+  margin: auto;
 }
 .dial-svg {
   position: absolute;
@@ -281,10 +287,15 @@ input { font: inherit; }
   font-size: 10px;
   letter-spacing: 0.7px;
 }
-.practice-main .center-note { margin-top: 14px; }
+
 
 /* ────────── 02 · speaking ────────── */
-.speaking-main { padding-top: 14px; }
+.speaking-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-top: 14px;
+}
 .topic-eyebrow { letter-spacing: 0.8px; }
 .topic {
   margin-top: 20px;
@@ -293,7 +304,8 @@ input { font: inherit; }
 }
 .topic.placeholder { color: var(--muted); font-size: 28px; }
 
-.timer-dial.live { margin-top: clamp(16px, 4.4vh, 44px); }
+.timer-dial.live { margin-top: auto; margin-bottom: auto; }
+.speaking-main .transcript { margin-bottom: 4px; }
 .timer-dial.live .dial-circle.live-circle {
   stroke: #3b3931;
   stroke-width: 1;
@@ -310,9 +322,9 @@ input { font: inherit; }
 }
 .timer-dial.live .timer-value {
   color: var(--cream);
-  font-size: 58px;
+  font-size: 60px;
   letter-spacing: 0.5px;
-  margin-top: -14px;
+  margin-top: 0;
 }
 .timer-dial.live .timer-label {
   color: var(--gold);
@@ -324,7 +336,7 @@ input { font: inherit; }
   position: relative;
   z-index: 1;
 }
-.speaking-main .center-note { margin-top: 16px; }
+
 
 .transcript {
   margin-top: clamp(12px, 2.4vh, 22px);
@@ -347,7 +359,7 @@ input { font: inherit; }
 /* ────────── action dock ────────── */
 .dock {
   margin-top: auto;
-  padding: 0 24px clamp(0px, 12vh, 118px);
+  padding: 0 24px;
 }
 #flow-note { min-height: 0; margin-bottom: 8px; }
 #flow-note.err { color: #d98a80; }
@@ -360,10 +372,10 @@ input { font: inherit; }
   justify-content: center;
   gap: 11px;
   width: 100%;
-  min-height: 58px;
-  border-radius: 16px;
+  min-height: 66px;
+  border-radius: 18px;
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   transition: transform 140ms var(--ease-out), opacity 140ms;
 }
