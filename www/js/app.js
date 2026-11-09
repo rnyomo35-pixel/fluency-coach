@@ -98,9 +98,6 @@
     btnFlashAgain: $("btn-flash-again"),
     btnFlashRestart: $("btn-flash-restart"),
     flashProgress: $("flash-progress"),
-    vocabCount: $("vocab-count"),
-    vocabEmpty: $("vocab-empty"),
-    vocabList: $("vocab-list"),
   };
 
   const RING_CIRCUMFERENCE = 2 * Math.PI * 52; // r=52 → 326.73
@@ -1474,7 +1471,6 @@
   function renderVocabScreen() {
     buildFlashDeck();
     renderFlash();
-    renderVocabList();
   }
 
   /* A deck, not a list: exactly one card is on the table. Know-it is a swipe to
@@ -1647,37 +1643,6 @@
     flash.pos += 1;
     flash.revealed = false;
     renderFlash();
-    renderVocabList();
-  }
-
-  function renderVocabList() {
-    const list = loadVocab();
-    els.vocabCount.textContent = list.length ? "· " + list.length : "";
-    els.vocabEmpty.classList.toggle("hidden", list.length > 0);
-    els.vocabList.innerHTML = "";
-
-    list.forEach((e) => {
-      const li = document.createElement("li");
-      li.className = "vocab-item";
-      li.innerHTML =
-        '<div class="v-main">' +
-          '<div class="v-term">' + escapeHtml(e.term) + "</div>" +
-          (e.said ? '<div class="v-said">“' + escapeHtml(e.said) + '”</div>' : "") +
-          (e.definition ? '<div class="v-def">' + escapeHtml(e.definition) + "</div>" : "") +
-          '<div class="v-meta">' + ((e.box || 0) >= 3 ? "learned" : "learning") +
-            " · " + (e.source === "auto" ? "auto-collected" : "from a session") + "</div>" +
-        "</div>" +
-        '<button class="icon-btn v-del" aria-label="Delete">×</button>';
-      li.querySelector(".v-del").addEventListener("click", () => deleteVocab(e.id));
-      els.vocabList.appendChild(li);
-    });
-  }
-
-  function deleteVocab(id) {
-    saveVocabList(loadVocab().filter((e) => e.id !== id));
-    buildFlashDeck();
-    renderFlash();
-    renderVocabList();
   }
 
   els.btnVocab.addEventListener("click", openVocab);
