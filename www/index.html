@@ -4,240 +4,282 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="color-scheme" content="dark" />
-  <meta name="theme-color" content="#0c0b0a" />
+  <meta name="theme-color" content="#0f0f0e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>Fluency Coach</title>
+  <title>offscript.</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <div class="app">
-    <!-- ═══════════════ FLOW / HOME ═══════════════ -->
-    <main id="screen-flow" class="screen">
-      <div class="top-actions">
-        <button id="btn-vocab" class="icon-btn" aria-label="Vocabulary">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v18H5.5A1.5 1.5 0 0 1 4 19.5z"></path>
-            <path d="M9 3v18"></path>
-          </svg>
+<div class="app-shell">
+  <div class="app-view">
+
+    <!-- ═══════════════ 01 · PRACTICE / 02 · SPEAKING ═══════════════ -->
+    <main id="screen-flow" class="screen flow-screen">
+      <header class="topbar practice-head">
+        <span class="wordmark">offscript.</span>
+        <button id="btn-settings" class="icon-btn settings" aria-label="Open settings">
+          <img src="assets/f4866.svg" alt="" aria-hidden="true" />
         </button>
-        <button id="btn-history" class="icon-btn" aria-label="Session history">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M12 7v5l3.5 2"></path>
-          </svg>
+      </header>
+
+      <header class="topbar speaking-head">
+        <button id="btn-speaking-back" class="icon-btn back" aria-label="Back to practice">
+          <img src="assets/48840.svg" alt="" aria-hidden="true" />
         </button>
-        <button id="btn-settings" class="icon-btn" aria-label="Settings">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="15" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        <span class="header-label">BLIND DRAW</span>
+        <span id="session-number" class="session-number">01</span>
+      </header>
+
+      <!-- ── practice ── -->
+      <div class="screen-main practice-main">
+        <div id="streak-chip" class="streak">7-DAY STREAK</div>
+        <h1 class="display">A little courage.<br />A clearer voice.</h1>
+        <p class="subcopy">Speak before you overthink.<br />One surprise topic. Your own pace.</p>
+
+        <div class="timer-dial">
+          <img class="dial-ring outer-ring" src="assets/c1476.svg" alt="" aria-hidden="true" />
+          <img class="dial-ring inner-ring" src="assets/508ef.svg" alt="" aria-hidden="true" />
+          <svg class="dial-svg" viewBox="0 0 198 198" aria-hidden="true">
+            <g class="dial-ticks">
+              <line x1="99" y1="7" x2="99" y2="15"></line>
+              <line x1="99" y1="183" x2="99" y2="191"></line>
+              <line x1="7" y1="99" x2="15" y2="99"></line>
+              <line x1="183" y1="99" x2="191" y2="99"></line>
+              <line x1="99" y1="7" x2="99" y2="12" transform="rotate(30 99 99)"></line>
+              <line x1="99" y1="7" x2="99" y2="12" transform="rotate(60 99 99)"></line>
+              <line x1="99" y1="7" x2="99" y2="12" transform="rotate(120 99 99)"></line>
+              <line x1="99" y1="7" x2="99" y2="12" transform="rotate(150 99 99)"></line>
+              <line x1="99" y1="7" x2="99" y2="12" transform="rotate(210 99 99)"></line>
+              <line x1="99" y1="7" x2="99" y2="12" transform="rotate(240 99 99)"></line>
+              <line x1="99" y1="7" x2="99" y2="12" transform="rotate(300 99 99)"></line>
+              <line x1="99" y1="7" x2="99" y2="12" transform="rotate(330 99 99)"></line>
+            </g>
           </svg>
-        </button>
+          <div class="timer-value">20</div>
+          <div class="eyebrow timer-label">SECONDS TO BEGIN</div>
+        </div>
+        <p class="center-note">A soft target, never a time limit.</p>
       </div>
 
-      <section class="hero">
-        <div class="hero-head">
-          <span class="eyebrow">Blind draw</span>
-          <span id="streak-chip" class="streak-chip">No streak yet</span>
-        </div>
-        <p id="topic-text" class="topic-text placeholder">Tap start — the topic appears the instant the clock starts.</p>
-        <div id="start-intro" class="start-intro">
-          <h1 class="start-title">Speak before you think.</h1>
-          <p class="start-sub">The topic lands the instant the clock starts — no planning, no pausing. Stop when the thought is finished.</p>
-          <div class="start-mark" aria-hidden="true"><span class="mark-rule"></span><span class="mark-dot"></span></div>
-          <ul class="start-steps">
-            <li><span class="step-n">01</span><span>Blind draw — topic and clock start together</span></li>
-            <li><span class="step-n">02</span><span>Speak freely — you decide when it ends</span></li>
-            <li><span class="step-n">03</span><span>Score, C1 rewrite and vocabulary, automatically</span></li>
-          </ul>
-        </div>
-      </section>
+      <!-- ── speaking ── -->
+      <section id="timer-section" class="screen-main speaking-main hidden">
+        <p class="eyebrow accent topic-eyebrow">BLIND DRAW&nbsp;&nbsp;/&nbsp;&nbsp;<span id="topic-index">TOPIC</span></p>
+        <h1 id="topic-text" class="topic display placeholder">—</h1>
 
-      <!-- Timer + record screen -->
-      <section id="timer-section" class="timer-section hidden">
-        <div class="timer-wrap">
-          <svg class="timer-ring" viewBox="0 0 120 120" aria-hidden="true">
-            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
-            <circle id="ring-progress" class="ring-progress" cx="60" cy="60" r="52"></circle>
+        <div class="timer-dial live timer-wrap">
+          <img class="dial-ring outer-ring" src="assets/25702.svg" alt="" aria-hidden="true" />
+          <img class="dial-ring inner-ring" src="assets/51e61.svg" alt="" aria-hidden="true" />
+          <svg class="dial-svg" viewBox="0 0 198 198" aria-hidden="true">
+            <circle id="ring-progress" class="ring-progress" cx="99" cy="99" r="98" transform="rotate(-90 99 99)"></circle>
           </svg>
           <div class="timer-center">
-            <span id="timer-seconds" class="timer-seconds">0</span>
-            <span class="timer-unit">seconds</span>
+            <span id="timer-seconds" class="timer-value live">00:00</span>
+            <span class="eyebrow timer-label">KEEP GOING</span>
           </div>
         </div>
-        <p class="soft-target">Aim 15–30 s · stop when the thought ends</p>
-        <p id="live-transcript" class="live-transcript">Listening…</p>
+        <p class="center-note">Keep going. Finish your thought.</p>
+
+        <div class="transcript" aria-live="polite">
+          <p class="eyebrow accent">•&nbsp;&nbsp;LISTENING LIVE</p>
+          <p id="live-transcript" class="live-transcript">Listening…</p>
+        </div>
       </section>
 
-      <!-- Docked controls: practice length + primary action, always in thumb reach -->
+      <!-- ── action ── -->
       <div class="dock">
-        <div class="dock-inner">
-          <p id="flow-note" class="flow-note" role="status" aria-live="polite"></p>
-          <div class="action-row">
-            <button id="btn-start-speaking" class="btn btn-primary">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                <path d="M12 19v3"></path>
-              </svg>
-              <span>Start Speaking (Blind Draw)</span>
-            </button>
-          </div>
-        </div>
+        <p id="flow-note" class="button-note" role="status" aria-live="polite"></p>
+        <button id="btn-start-speaking" class="primary-button">
+          <img src="assets/de5bc.svg" width="20" height="20" alt="" aria-hidden="true" />
+          <span>Start Speaking (Blind Draw)</span>
+        </button>
+        <p class="button-note practice-note">Topic + timer start together.</p>
+        <p class="button-note speaking-note">You decide when your thought is complete.</p>
+        <p class="mantra">NO PREP. NO PERFECT ANSWERS. JUST YOU.</p>
       </div>
     </main>
 
-    <!-- ═══════════════ SCORECARD ═══════════════ -->
+    <!-- ═══════════════ 03 · FEEDBACK ═══════════════ -->
     <main id="screen-scorecard" class="screen hidden">
-      <div class="top-actions top-actions-left">
-        <button id="btn-score-back" class="icon-btn" aria-label="Back to start">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 5l-7 7 7 7"></path>
-          </svg>
+      <header class="topbar">
+        <button id="btn-score-back" class="icon-btn back" aria-label="Back">
+          <img src="assets/48840.svg" alt="" aria-hidden="true" />
         </button>
-      </div>
+        <span class="header-label">YOUR FEEDBACK</span>
+        <span id="feedback-session" class="session-number">SESSION</span>
+      </header>
 
-      <section class="score-hero">
-        <div class="score-ring-wrap">
-          <svg class="timer-ring score-ring" viewBox="0 0 120 120" aria-hidden="true">
-            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
-            <circle id="score-arc" class="ring-progress" cx="60" cy="60" r="52"></circle>
-          </svg>
-          <div class="timer-center">
-            <span id="score-value" class="score-value">–</span>
-            <span class="timer-unit">of 10</span>
+      <div class="screen-main feedback-main">
+        <h1 class="display feedback-title">A thought, refined.</h1>
+        <p id="score-subtitle" class="subcopy feedback-meta">—</p>
+
+        <section class="score-card">
+          <div id="score-value" class="score">–</div>
+          <span class="score-of">/ 10</span>
+          <div class="score-copy">
+            <strong id="score-title">Your score</strong>
+            <p>Fluency &amp; grammatical accuracy</p>
           </div>
-        </div>
-        <div class="score-caption">
-          <span class="eyebrow">Score</span>
-          <h2 id="score-title">Your score</h2>
-          <p id="score-subtitle">Fluency &amp; grammatical accuracy</p>
-        </div>
-      </section>
+        </section>
 
-      <section class="card">
-        <div class="card-label">What we heard</div>
-        <p id="heard-text" class="heard-text"></p>
-      </section>
+        <section class="feedback-section">
+          <p class="eyebrow">01&nbsp;&nbsp;/&nbsp;&nbsp;WHAT WE HEARD</p>
+          <p id="heard-text" class="quote"></p>
+        </section>
 
-      <section id="mistakes-section" class="card">
-        <div class="card-label">Mistakes</div>
-        <ul id="mistakes-list" class="mistakes-list"></ul>
-      </section>
+        <section id="mistakes-section" class="feedback-section refinements">
+          <p class="card-label eyebrow">02&nbsp;&nbsp;/&nbsp;&nbsp;YOUR REFINEMENTS</p>
+          <ul id="mistakes-list" class="mistakes-list"></ul>
+        </section>
 
-      <section class="card c1-block">
-        <div class="card-label">Try this next time</div>
-        <p id="c1-text" class="c1-text"></p>
+        <section class="c1-card">
+          <p class="eyebrow accent">03&nbsp;&nbsp;/&nbsp;&nbsp;THE C1 VERSION</p>
+          <p id="c1-text" class="c1-text"></p>
+        </section>
         <p id="save-c1-hint" class="vocab-added"></p>
-      </section>
 
-      <section class="card feedback-block">
-        <div class="card-label">One tip</div>
-        <p id="feedback-text" class="feedback-text"></p>
-      </section>
+        <section class="next-tip">
+          <p class="eyebrow">ONE THING TO TRY NEXT</p>
+          <p id="feedback-text" class="feedback-text"></p>
+        </section>
 
-      <div class="score-actions">
-        <button id="btn-retry-topic" class="btn btn-secondary">Retry this topic</button>
-        <button id="btn-new-topic-2" class="btn btn-primary">New blind draw</button>
+        <div class="score-actions">
+          <button id="btn-retry-topic" class="secondary-button">←&nbsp;&nbsp;Retry this topic</button>
+          <button id="btn-new-topic-2" class="primary-button small">Try another topic&nbsp;&nbsp;→</button>
+        </div>
       </div>
     </main>
 
-    <!-- ═══════════════ HISTORY ═══════════════ -->
-    <main id="screen-history" class="screen hidden">
-      <section class="card history-card">
-        <div class="card-label">History</div>
-
-        <div id="history-empty" class="history-empty">
-          <p>Nothing here yet.</p>
-          <p class="history-empty-sub">Finish one attempt and your progress starts building.</p>
-        </div>
-
-        <div id="history-stats" class="history-stats hidden">
-          <div class="stat-block"><span id="s-total" class="stat-value">0</span><span class="stat-label">sessions</span></div>
-          <div class="stat-block"><span id="s-best" class="stat-value">–</span><span class="stat-label">best</span></div>
-          <div class="stat-block"><span id="s-avg" class="stat-value">–</span><span class="stat-label">average</span></div>
-        </div>
-
-        <div id="chart-section" class="results-block hidden">
-          <div class="card-label">Last 20 scores</div>
-          <div class="chart-wrap">
-            <svg id="trend-chart" viewBox="0 0 320 150" preserveAspectRatio="xMidYMid meet">
-              <line class="chart-grid" x1="12" y1="12.5" x2="308" y2="12.5"></line>
-              <line class="chart-grid" x1="12" y1="65" x2="308" y2="65"></line>
-              <line class="chart-grid" x1="12" y1="117.5" x2="308" y2="117.5"></line>
-              <line id="trend-avg" class="trend-avg" x1="12" y1="0" x2="308" y2="0"></line>
-              <polyline id="trend-line" class="trend-line" points=""></polyline>
-              <g id="trend-points"></g>
-            </svg>
-          </div>
-        </div>
-
-        <div class="results-block">
-          <div class="card-label">Recent attempts</div>
-          <ul id="history-list" class="history-list"></ul>
-        </div>
-
-        <div class="history-actions">
-          <button id="btn-clear-history" class="btn btn-ghost">Clear history</button>
-          <button id="btn-back-main" class="btn btn-secondary">Back</button>
-        </div>
-      </section>
-    </main>
-
-    <!-- ═══════════════ VOCABULARY ═══════════════ -->
+    <!-- ═══════════════ 04 · VOCABULARY ═══════════════ -->
     <main id="screen-vocab" class="screen hidden">
-      <div class="top-actions top-actions-left">
-        <button id="btn-vocab-back" class="icon-btn" aria-label="Back">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 5l-7 7 7 7"></path>
-          </svg>
-        </button>
-      </div>
+      <header class="topbar">
+        <span class="wordmark">offscript.</span>
+        <span class="header-label right">YOUR WORDS</span>
+      </header>
 
-      <section class="card flash-card">
-        <div class="flash-head">
-          <span class="card-label">Flashcards</span>
-          <span id="flash-progress" class="flash-progress"></span>
+      <div class="screen-main vocabulary-main">
+        <h1 class="display">Make it<br />second nature.</h1>
+        <p class="subcopy">Better words, collected as you speak.</p>
+
+        <div class="deck-meta">
+          <span id="flash-progress">0 CARDS IN YOUR DECK</span>
+          <span class="deck-meta-right">OLDEST FIRST</span>
         </div>
 
-        <div id="flash-stage" class="flash-stage">
+        <div id="flash-stage" class="card-stack">
           <div id="flash-deck" class="flash-deck"></div>
           <p id="flash-empty" class="flash-empty hidden">Nothing here yet — finish one attempt and your vocabulary collects itself.</p>
         </div>
 
-        <div id="flash-hint" class="flash-hint hidden">
-          <button id="btn-flash-again" class="swipe-hint"><span aria-hidden="true">←</span> Study again</button>
-          <button id="btn-flash-got" class="swipe-hint">Got it <span aria-hidden="true">→</span></button>
-          <button id="btn-flash-restart" class="btn btn-secondary hidden">Review again</button>
+        <div id="flash-hint" class="card-actions hidden">
+          <button id="btn-flash-again" class="secondary-button">←&nbsp;&nbsp;Practice again</button>
+          <button id="btn-flash-got" class="primary-button small">Knew it&nbsp;&nbsp;→</button>
         </div>
-      </section>
+        <button id="btn-flash-restart" class="secondary-button wide hidden">Review round</button>
 
+        <p class="button-note">Swipe left to revisit. Right to move on.</p>
+
+        <button id="btn-vocab-back" class="gone" aria-hidden="true" tabindex="-1">Back</button>
+      </div>
     </main>
-  </div>
 
-  <!-- ═══════════════ SETTINGS SHEET ═══════════════ -->
-  <div id="settings-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <div class="sheet-grabber" aria-hidden="true"></div>
-      <div class="modal-head">
-        <h3 id="settings-title">Gemini API key</h3>
-        <button id="btn-close-settings" class="icon-btn" aria-label="Close">&times;</button>
+    <!-- ═══════════════ 05 · HISTORY ═══════════════ -->
+    <main id="screen-history" class="screen hidden">
+      <header class="topbar">
+        <span class="wordmark">offscript.</span>
+        <span class="header-label right">YOUR GROWTH</span>
+      </header>
+
+      <div class="screen-main history-main">
+        <h1 class="display">Small steps.<br />Stronger voice.</h1>
+
+        <div id="history-empty" class="history-empty hidden">
+          <p>Nothing here yet.</p>
+          <p class="history-empty-sub">Finish one attempt and your progress starts building.</p>
+        </div>
+
+        <div id="history-stats" class="stats">
+          <div><strong id="s-total">0</strong><span>SESSIONS</span></div>
+          <div><strong id="s-best">–</strong><span>BEST SCORE</span></div>
+          <div><strong id="s-avg" class="accent">–</strong><span>AVERAGE</span></div>
+        </div>
+
+        <section id="chart-section" class="chart-section">
+          <div class="chart-title eyebrow">
+            <span>YOUR LAST 20 SESSIONS</span>
+            <span class="accent">AVG <span id="chart-avg">–</span></span>
+          </div>
+          <div class="chart-wrap">
+            <svg id="trend-chart" viewBox="0 0 320 121" preserveAspectRatio="none">
+              <line id="trend-avg" class="trend-avg" x1="0" y1="60" x2="320" y2="60"></line>
+              <polyline id="trend-line" class="trend-line" points=""></polyline>
+              <g id="trend-points"></g>
+            </svg>
+          </div>
+          <div class="chart-axis">
+            <span>20 sessions ago</span>
+            <span>Today</span>
+          </div>
+        </section>
+
+        <section class="attempts">
+          <p class="eyebrow">RECENT ATTEMPTS</p>
+          <ul id="history-list" class="history-list"></ul>
+        </section>
+
+        <div class="history-actions">
+          <button id="btn-clear-history" class="ghost-button">Clear history</button>
+          <button id="btn-back-main" class="gone" aria-hidden="true" tabindex="-1">Back</button>
+        </div>
       </div>
-      <p class="modal-sub">Stored only on this device. Get a free key at <span class="mono">aistudio.google.com</span>.</p>
-      <div class="key-row">
-        <input id="api-key-input" class="key-input" type="password" placeholder="Paste your API key" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off" />
-        <button id="btn-peek-key" class="icon-btn small" aria-label="Show / hide key">👁</button>
-      </div>
-      <p id="key-status" class="key-status"></p>
-      <div class="modal-actions">
-        <button id="btn-clear-key" class="btn btn-ghost">Clear</button>
-        <button id="btn-save-key" class="btn btn-primary">Save key</button>
-      </div>
+    </main>
+
+    <!-- ═══════════════ BOTTOM NAVIGATION ═══════════════ -->
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button id="btn-nav-practice" class="nav-item selected" aria-current="page">
+        <span class="active-line"></span>
+        <img class="ico-off" src="assets/370b6.svg" alt="" aria-hidden="true" />
+        <img class="ico-on" src="assets/4f59d.svg" alt="" aria-hidden="true" />
+        <span>Practice</span>
+      </button>
+      <button id="btn-vocab" class="nav-item">
+        <span class="active-line"></span>
+        <img class="ico-off" src="assets/09880.svg" alt="" aria-hidden="true" />
+        <img class="ico-on" src="assets/3e776.svg" alt="" aria-hidden="true" />
+        <span>Vocabulary</span>
+      </button>
+      <button id="btn-history" class="nav-item">
+        <span class="active-line"></span>
+        <img class="ico-off" src="assets/006b7.svg" alt="" aria-hidden="true" />
+        <img class="ico-on" src="assets/3c4dc.svg" alt="" aria-hidden="true" />
+        <span>History</span>
+      </button>
+    </nav>
+  </div>
+</div>
+
+<!-- ═══════════════ SETTINGS SHEET ═══════════════ -->
+<div id="settings-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="sheet-grabber" aria-hidden="true"></div>
+    <button id="btn-close-settings" class="icon-btn sheet-close" aria-label="Close">&times;</button>
+    <p class="eyebrow accent">YOUR PRACTICE SETUP</p>
+    <h3 id="settings-title">Your Gemini key.</h3>
+    <p class="modal-sub">Stored only on this device. Get a free key at <span class="mono">aistudio.google.com</span>.</p>
+    <div class="key-row">
+      <input id="api-key-input" class="key-input" type="password" placeholder="Paste your API key" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off" />
+      <button id="btn-peek-key" class="icon-btn small" aria-label="Show / hide key">👁</button>
+    </div>
+    <p id="key-status" class="key-status"></p>
+    <div class="modal-actions">
+      <button id="btn-clear-key" class="secondary-button">Clear</button>
+      <button id="btn-save-key" class="primary-button small">Save key</button>
     </div>
   </div>
+</div>
 
-  <script src="js/topics.js"></script>
-  <script src="js/app.js"></script>
+<script src="js/topics.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

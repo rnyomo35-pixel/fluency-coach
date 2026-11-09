@@ -98,11 +98,38 @@
     btnFlashAgain: $("btn-flash-again"),
     btnFlashRestart: $("btn-flash-restart"),
     flashProgress: $("flash-progress"),
+    /* design chrome */
+    btnNavPractice: $("btn-nav-practice"),
+    btnSpeakingBack: $("btn-speaking-back"),
+    sessionNumber: $("session-number"),
+    feedbackSession: $("feedback-session"),
+    scoreSubtitle: $("score-subtitle"),
+    chartAvg: $("chart-avg"),
+    topicIndex: $("topic-index"),
   };
 
-  const RING_CIRCUMFERENCE = 2 * Math.PI * 52; // r=52 → 326.73
+  /* Bottom navigation: exactly one destination is lit at a time. */
+  const NAV_ITEMS = {
+    practice: $("btn-nav-practice"),
+    vocabulary: $("btn-vocab"),
+    history: $("btn-history"),
+  };
+
+  function setNav(name) {
+    Object.keys(NAV_ITEMS).forEach((key) => {
+      const btn = NAV_ITEMS[key];
+      if (!btn) return;
+      const on = key === name;
+      btn.classList.toggle("selected", on);
+      if (on) btn.setAttribute("aria-current", "page");
+      else btn.removeAttribute("aria-current");
+    });
+  }
+
+  /* The dial lives in a 198-unit viewBox now, so the ring length is read from
+     the circle itself instead of a hard-coded radius. */
+  const RING_CIRCUMFERENCE = 2 * Math.PI * Number(els.ringProgress.getAttribute("r") || 88);
   els.ringProgress.style.strokeDasharray = String(RING_CIRCUMFERENCE);
-  els.scoreArc.style.strokeDasharray = String(RING_CIRCUMFERENCE);
 
   /* Native detection: inside Capacitor iOS the native runtime injects the
      window.Capacitor bridge, exposing installed plugins on Capacitor.Plugins. */
@@ -129,10 +156,10 @@
       .replace(/^[\s"'`]+|[\s"'`]+$/g, ""); // tolerate a key pasted with quotes
   }
 
-  const MIC_ICON =
-    '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v3"></path></svg>';
-  const STOP_ICON =
-    '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.5"></rect></svg>';
+  /* The icons are the exported Figma assets, so the button matches the design
+     exactly (both are drawn in ink for the brass surface). */
+  const MIC_ICON = '<img src="assets/de5bc.svg" width="20" height="20" alt="" aria-hidden="true" />';
+  const STOP_ICON = '<img src="assets/b53a6.svg" width="20" height="20" alt="" aria-hidden="true" />';
   const evaluatingLabel = '<span class="btn-spinner"></span><span>Evaluating with Gemini…</span>';
   let evalTicker = null;
 
@@ -325,6 +352,9 @@
   function revealTopic(topic) {
     els.topicText.textContent = topic;
     els.topicText.classList.remove("placeholder");
+    const drawNumber = loadHistory().length + 1;
+    if (els.topicIndex) els.topicIndex.textContent = "TOPIC " + String(drawNumber).padStart(3, "0");
+    if (els.sessionNumber) els.sessionNumber.textContent = pad2(drawNumber);
     // fresh animation for every draw
     els.topicText.style.animation = "none";
     void els.topicText.offsetWidth;
@@ -341,11 +371,13 @@
   function showFlowScreen() {
     hideAllScreens();
     els.screenFlow.classList.remove("hidden");
+    setNav("practice");
   }
 
   function showScoreScreen() {
     hideAllScreens();
     els.screenScore.classList.remove("hidden");
+    setNav("practice");
   }
 
   /* The way back from a scorecard: same screen the app opens on, topic cleared
@@ -359,6 +391,7 @@
     els.timerSection.classList.add("hidden");
     resetTimerUI();
     resetStartButton();
+    els.screenFlow.classList.remove("is-speaking");
     showFlowScreen();
   }
 
@@ -388,10 +421,14 @@
       if (stopped) return;
       const sec = Math.floor((now - started) / 1000);
       if (sec !== lastSec) {           // one write per second, not per frame
-        els.timerSeconds.textContent = String(sec);
+        els.timerSeconds.textContent = formatClock(sec);
         lastSec = sec;
       }
-      if (sec >= SOFT_TARGET_SEC) els.timerWrap.classList.add("good");
+      if (sec >= SOFT_TARGET_SEC && !els.timerWrap.classList.contains("good")) {
+        els.timerWrap.classList.add("good");
+        const targetLabel = els.timerWrap.querySelector(".timer-label");
+        if (targetLabel) targetLabel.textContent = SOFT_TARGET_SEC + "s TARGET REACHED";
+      }
       state.ring = requestAnimationFrame(frame);
     }
 
@@ -411,13 +448,20 @@
     return ms;
   }
 
+  /* The live dial reads 00:27, as in the design. */
+  function formatClock(sec) {
+    return pad2(Math.floor(sec / 60)) + ":" + pad2(sec % 60);
+  }
+
   function resetTimerUI() {
     stopStopwatch();
     els.ringProgress.style.transition = "none";
     els.ringProgress.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
-    els.timerSeconds.textContent = "0";
+    els.timerSeconds.textContent = "00:00";
     els.timerSeconds.classList.remove("warn");
     els.timerWrap.classList.remove("final", "good");
+    const idleLabel = els.timerWrap.querySelector(".timer-label");
+    if (idleLabel) idleLabel.textContent = "KEEP GOING";
     els.liveTranscript.textContent = "Listening…";
     els.liveTranscript.classList.remove("active");
   }
@@ -647,6 +691,7 @@
     els.liveTranscript.classList.add("active");
     els.liveTranscript.textContent = "Listening…";
     els.btnStart.classList.add("recording");
+    els.screenFlow.classList.add("is-speaking");
     setStartButton(stopLabel, false);
 
     const session = { topic: topic, transcript: "", error: null, elapsedSec: 0 };
@@ -727,6 +772,7 @@
     }
     resetTimerUI();
     els.timerSection.classList.add("hidden");
+    els.screenFlow.classList.remove("is-speaking");
     state.recording = false;
     if (state.session === session) state.session = null; // its events are dead from here on
   }
@@ -1106,35 +1152,41 @@
 
     els.scoreValue.textContent = String(score);
     els.scoreTitle.textContent = scoreTitles[score] || "Your score";
-    els.scoreArc.style.strokeDasharray = String(RING_CIRCUMFERENCE);
-    els.scoreArc.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - score / 10));
 
     els.heardText.textContent = "\u201C" + transcript + "\u201D";
 
     saveHistoryRecord(result, score, transcript, session);
     state.lastResult = { score: score };
+
+    /* Design chrome: the topic line under the title and the session id. */
+    const topicLine = String((session && session.topic) || "").replace(/\s+/g, " ").trim();
+    const secs = (session && session.elapsedSec) || 0;
+    if (els.scoreSubtitle) {
+      els.scoreSubtitle.textContent = topicLine
+        ? topicLine + "  ·  " + secs + " seconds"
+        : secs + " seconds";
+    }
+    if (els.feedbackSession) {
+      els.feedbackSession.textContent = "SESSION " + String(loadHistory().length).padStart(3, "0");
+    }
     vocabAddedThisAttempt = collectVocabFromResult(result, transcript, session);
 
     const mistakes = Array.isArray(result.mistakes) ? result.mistakes : [];
     els.mistakesList.innerHTML = "";
+    const mistakesLabel = els.mistakesSection.querySelector(".card-label");
     if (!mistakes.length) {
-      els.mistakesSection.querySelector(".card-label").textContent = "MISTAKES — NONE. CLEAN BURST! 🎉";
+      if (mistakesLabel) mistakesLabel.textContent = "02  /  REFINEMENTS · CLEAN BURST";
     } else {
-      els.mistakesSection.querySelector(".card-label").textContent = "MISTAKES";
-      const tagColors = {
-        grammar: "rgba(251,113,133,.2)",
-        vocabulary: "rgba(34,211,238,.2)",
-        expression: "rgba(167,139,250,.2)",
-      };
+      if (mistakesLabel) {
+        mistakesLabel.textContent =
+          "02  /  " + (mistakes.length === 1 ? "ONE REFINEMENT" : mistakes.length + " SMALL REFINEMENTS");
+      }
       mistakes.slice(0, 8).forEach((m) => {
         const li = document.createElement("li");
         li.innerHTML =
+          (m.type ? '<span class="m-tag">' + escapeHtml(m.type) + "</span>" : "") +
           '<span class="m-err">' + escapeHtml(m.error || "?") + "</span>" +
           ' → <span class="m-fix">' + escapeHtml(m.correction || "?") + "</span>" +
-          (m.type
-            ? ' <span class="m-tag" style="background:' + (tagColors[m.type] || "rgba(148,163,184,.2)") + '">' +
-              escapeHtml(m.type) + "</span>"
-            : "") +
           '<span class="m-why">' + escapeHtml(m.explanation || "") + "</span>";
         els.mistakesList.appendChild(li);
       });
@@ -1201,6 +1253,7 @@
     renderHistory(loadHistory());
     hideAllScreens();
     els.screenHistory.classList.remove("hidden");
+    setNav("history");
   }
 
   function goBackFromHistory() {
@@ -1294,25 +1347,28 @@
       return;
     }
 
-    const x = (i) => (n === 1 ? 160 : 22 + (i * 276) / (n - 1));
-    const y = (s) => 117.5 - ((s - 1) / 9) * 105; // score 1..10 → 117.5..12.5
+    const y = (s) => 118 - (Math.max(0, Math.min(10, s)) / 10) * 112; // 0 → baseline
 
-    const pts = recent.map((h, i) => x(i) + "," + y(h.score).toFixed(1));
-    els.trendLine.setAttribute("points", pts.join(" "));
+    if (els.chartAvg) els.chartAvg.textContent = avg.toFixed(1);
 
-    // average line
+    /* Bars, as in the design: one per session, the newest one in brass. */
+    const slot = 310 / n;
+    const bw = Math.min(9, Math.max(4, slot * 0.55));
+    recent.forEach((h, i) => {
+      const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      const height = Math.max(4, 118 - y(h.score));
+      r.setAttribute("x", (5 + slot * i + (slot - bw) / 2).toFixed(1));
+      r.setAttribute("y", (118 - height).toFixed(1));
+      r.setAttribute("width", bw.toFixed(1));
+      r.setAttribute("height", height.toFixed(1));
+      r.setAttribute("rx", "2");
+      r.setAttribute("class", i === n - 1 ? "bar current" : "bar");
+      els.trendPoints.appendChild(r);
+    });
+
     const yAvg = y(avg).toFixed(1);
     els.trendAvg.setAttribute("y1", yAvg);
     els.trendAvg.setAttribute("y2", yAvg);
-
-    recent.forEach((h, i) => {
-      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      c.setAttribute("cx", x(i).toFixed(1));
-      c.setAttribute("cy", y(h.score).toFixed(1));
-      c.setAttribute("r", "4");
-      c.setAttribute("class", "trend-point");
-      els.trendPoints.appendChild(c);
-    });
   }
 
   /* Clear button needs a double tap (no confirm() in the iOS webview). */
@@ -1466,6 +1522,7 @@
     renderVocabScreen();
     hideAllScreens();
     els.screenVocab.classList.remove("hidden");
+    setNav("vocabulary");
   }
 
   function renderVocabScreen() {
@@ -1520,11 +1577,11 @@
     els.flashHint.classList.toggle("hidden", total === 0);
 
     if (done) {
-      els.flashProgress.textContent = total ? pad2(total) + " saved" : "";
+      els.flashProgress.textContent = total ? pad2(total) + " CARDS IN YOUR DECK" : "";
       return;
     }
 
-    els.flashProgress.textContent = pad2(flash.pos + 1) + " / " + pad2(flash.deck.length);
+    els.flashProgress.textContent = pad2(flash.deck.length) + " CARDS IN YOUR DECK";
 
     /* Three edges only: the cards behind carry no text, just depth. */
     const visible = queue.slice(0, 3);
@@ -1544,15 +1601,15 @@
     if (flash.revealed) card.classList.add("revealed");
     card.innerHTML =
       '<div class="fcard-man">' +
-        '<span class="fcard-step">' + pad2(index + 1) + "<i>/" + pad2(total) + "</i></span>" +
-        '<span class="fcard-topic">' + escapeHtml(entry.topic || "Collected automatically") + "</span>" +
+        '<span class="fcard-type">' + escapeHtml(String(entry.type || "expression").toUpperCase()) + "</span>" +
+        '<span class="fcard-step">' + pad2(index + 1) + "<i> / " + pad2(total) + "</i></span>" +
       "</div>" +
       '<p class="fcard-term">' + escapeHtml(entry.term) + "</p>" +
+      '<span class="instead-label">INSTEAD OF</span>' +
       (entry.said ? '<p class="fcard-said">“' + escapeHtml(entry.said) + "”</p>" : "") +
       '<p class="fcard-def">' + escapeHtml(entry.definition || "No note saved.") + "</p>" +
       '<div class="fcard-foot">' +
-        '<span class="fcard-tap">Tap for the note</span>' +
-        '<span class="fcard-keys">← again · knew it →</span>' +
+        '<span class="fcard-tap">Tap to see the explanation ↗</span>' +
       "</div>" +
       '<div class="fcard-stamp got">Got it</div>' +
       '<div class="fcard-stamp again">Again</div>';
@@ -1647,6 +1704,16 @@
 
   els.btnVocab.addEventListener("click", openVocab);
   els.btnVocabBack.addEventListener("click", goHome);
+  if (els.btnNavPractice) els.btnNavPractice.addEventListener("click", goHome);
+  if (els.btnSpeakingBack) {
+    els.btnSpeakingBack.addEventListener("click", () => {
+      if (state.recording && state.session) {
+        state.session.requestStop("Attempt ended — nothing was saved.");
+      } else {
+        goHome();
+      }
+    });
+  }
   els.btnScoreBack.addEventListener("click", goHome);
 
   els.btnFlashGot.addEventListener("click", () => swipeCard(1));
