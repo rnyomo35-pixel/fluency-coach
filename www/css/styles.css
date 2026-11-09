@@ -50,12 +50,14 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html {
+  height: 100%;
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  min-height: 100dvh;
+  height: 100%;
+  overflow: hidden;
   background: var(--bg);
   color: var(--cream);
   font-family: var(--sans);
@@ -99,25 +101,27 @@ input { font: inherit; }
 .app-shell {
   position: relative;
   z-index: 1;
-  min-height: 100dvh;
+  height: 100%;
 }
+/* The whole app is one fixed column: screen on top, tab bar at the very bottom.
+   Nothing scrolls — every page is laid out to fit the device exactly. */
 .app-view {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(100%, 520px);
-  min-height: 100dvh;
+  height: 100%;
   margin: 0 auto;
   padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .screen {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
-  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 12px);
-}
-/* Practice and speaking fit the screen: no scrolling on the first two pages. */
-.flow-screen {
-  height: 100dvh;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
+  padding-bottom: 0;
 }
 .screen-main {
   padding: 10px 24px 0;
@@ -424,17 +428,14 @@ input { font: inherit; }
 
 /* ────────── bottom navigation ────────── */
 .bottom-nav {
-  position: fixed;
+  position: relative;
   z-index: 20;
-  right: 0;
-  bottom: 0;
-  left: 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  width: min(100%, 520px);
-  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
-  margin: 0 auto;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  flex: none;
+  width: 100%;
+  height: var(--nav-h);
+  margin: 0;
   border-top: 1px solid var(--line-soft);
   background: rgba(17, 17, 16, 0.96);
   backdrop-filter: blur(18px);
@@ -469,7 +470,18 @@ input { font: inherit; }
 .nav-item.selected .active-line { background: var(--gold); }
 
 /* ────────── 03 · feedback ────────── */
-.feedback-main { padding-top: 4px; padding-bottom: 24px; }
+/* The scorecard is the one genuinely long report: it scrolls inside its own
+   column so the tab bar never moves and nothing is cut off. */
+.feedback-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 4px;
+  padding-bottom: 24px;
+  scrollbar-width: none;
+}
+.feedback-main::-webkit-scrollbar { display: none; }
 .feedback-title { font-size: clamp(36px, 10.6vw, 44px); line-height: 1.06; }
 .feedback-meta { margin-top: 8px; font-size: 13px; }
 .score-card {

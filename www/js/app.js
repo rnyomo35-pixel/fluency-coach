@@ -1287,7 +1287,9 @@
 
     // ── attempt list
     els.historyList.innerHTML = "";
-    history.forEach((h) => {
+    /* The design shows the three most recent attempts, and the page never
+       scrolls — the list is capped to what fits. */
+    history.slice(0, 3).forEach((h) => {
       const li = document.createElement("li");
       li.className = "history-item";
       const mistakeCount = h.mistakes && h.mistakes.length ? h.mistakes.length : 0;
@@ -1299,13 +1301,7 @@
             '<div class="h-date">' + formatWhen(h.t) +
               " · " + mistakeCount + (mistakeCount === 1 ? " mistake" : " mistakes") + "</div>" +
           "</div>" +
-        "</div>" +
-        '<details class="h-details"><summary>Coach notes ＋</summary>' +
-          '<p class="h-tip">💡 ' + escapeHtml(h.feedback || "") + "</p>" +
-          '<p class="h-c1">' + escapeHtml(h.c1 || "") + "</p>" +
-          '<p class="h-heard">“' + escapeHtml(h.transcript || "") + "”</p>" +
-          mistakeLinesHtml(h.mistakes) +
-        "</details>";
+        "</div>";
       els.historyList.appendChild(li);
     });
   }
