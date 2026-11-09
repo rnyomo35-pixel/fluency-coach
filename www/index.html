@@ -45,6 +45,7 @@
         <div id="start-intro" class="start-intro">
           <h1 class="start-title">Speak before you think.</h1>
           <p class="start-sub">The topic lands the instant the clock starts — no planning, no pausing. Stop when the thought is finished.</p>
+          <div class="start-mark" aria-hidden="true"><span class="mark-rule"></span><span class="mark-dot"></span></div>
           <ul class="start-steps">
             <li><span class="step-n">01</span><span>Blind draw — topic and clock start together</span></li>
             <li><span class="step-n">02</span><span>Speak freely — you decide when it ends</span></li>
@@ -195,19 +196,21 @@
       </div>
 
       <section class="card flash-card">
-        <div class="card-label">Flashcards</div>
-        <p id="flash-term" class="flash-term"></p>
-        <p id="flash-said" class="flash-said hidden"></p>
-        <p id="flash-def" class="flash-def hidden"></p>
-        <p id="flash-empty" class="flash-empty">Nothing here yet — finish one attempt and your vocabulary collects itself.</p>
-        <div id="flash-actions" class="flash-actions hidden">
-          <button id="btn-flash-reveal" class="btn btn-secondary">Show definition</button>
-          <div id="flash-grade" class="flash-grade hidden">
-            <button id="btn-flash-again" class="btn btn-ghost">Study again</button>
-            <button id="btn-flash-got" class="btn btn-primary">Got it</button>
-          </div>
+        <div class="flash-head">
+          <span class="card-label">Flashcards</span>
+          <span id="flash-progress" class="flash-progress"></span>
         </div>
-        <p id="flash-progress" class="flash-progress"></p>
+
+        <div id="flash-stage" class="flash-stage">
+          <div id="flash-deck" class="flash-deck"></div>
+          <p id="flash-empty" class="flash-empty hidden">Nothing here yet — finish one attempt and your vocabulary collects itself.</p>
+        </div>
+
+        <div id="flash-hint" class="flash-hint hidden">
+          <button id="btn-flash-again" class="swipe-hint"><span aria-hidden="true">←</span> Study again</button>
+          <button id="btn-flash-got" class="swipe-hint">Got it <span aria-hidden="true">→</span></button>
+          <button id="btn-flash-restart" class="btn btn-secondary hidden">Review again</button>
+        </div>
       </section>
 
       <section class="card">

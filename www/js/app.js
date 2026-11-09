@@ -90,15 +90,13 @@
     btnVocabBack: $("btn-vocab-back"),
     btnScoreBack: $("btn-score-back"),
     saveC1Hint: $("save-c1-hint"),
-    flashSaid: $("flash-said"),
-    flashTerm: $("flash-term"),
-    flashDef: $("flash-def"),
+    flashDeck: $("flash-deck"),
+    flashStage: $("flash-stage"),
     flashEmpty: $("flash-empty"),
-    flashActions: $("flash-actions"),
-    flashGrade: $("flash-grade"),
-    btnFlashReveal: $("btn-flash-reveal"),
+    flashHint: $("flash-hint"),
     btnFlashGot: $("btn-flash-got"),
     btnFlashAgain: $("btn-flash-again"),
+    btnFlashRestart: $("btn-flash-restart"),
     flashProgress: $("flash-progress"),
     vocabCount: $("vocab-count"),
     vocabEmpty: $("vocab-empty"),
@@ -1479,12 +1477,19 @@
     renderVocabList();
   }
 
-  /* Weakest first: unseen cards, then the lowest graded, so a round opens with
-     what actually needs the work. */
+  /* A deck, not a list: exactly one card is on the table. Know-it is a swipe to
+     the right, "study again" a swipe to the left, and the queue keeps the order
+     the cards were collected in — the oldest first. */
+  const SWIPE_THRESHOLD = 88;
+
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+
   function buildFlashDeck() {
     flash.deck = loadVocab()
       .slice()
-      .sort((a, b) => (a.box || 0) - (b.box || 0) || (a.t || 0) - (b.t || 0))
+      .sort((x, y) => (x.t || 0) - (y.t || 0))
       .map((e) => e.id);
     flash.pos = 0;
     flash.revealed = false;
@@ -1496,46 +1501,135 @@
   }
 
   function renderFlash() {
-    const total = loadVocab().length;
-    const hasCards = total > 0;
+    const list = loadVocab();
+    const total = list.length;
+    const byId = new Map(list.map((e) => [e.id, e]));
+    const queue = flash.deck.slice(flash.pos).map((id) => byId.get(id)).filter(Boolean);
 
-    els.flashEmpty.classList.toggle("hidden", hasCards);
-    els.flashTerm.classList.toggle("hidden", !hasCards);
-    els.flashActions.classList.toggle("hidden", !hasCards);
-    els.flashSaid.classList.add("hidden");
-    els.flashDef.classList.add("hidden");
-    els.flashGrade.classList.add("hidden");
-    els.btnFlashReveal.classList.remove("hidden");
-    els.btnFlashReveal.textContent = "Show definition";
+    /* The card that just left stays in the air while the next one takes the
+       table, so a swipe always ends in a card rather than a gap. */
+    Array.prototype.forEach.call(
+      els.flashDeck.querySelectorAll(".fcard:not([data-flying])"),
+      (n) => n.remove()
+    );
 
-    if (!hasCards) {
-      els.flashTerm.textContent = "";
-      els.flashProgress.textContent = "";
+    const done = queue.length === 0;
+    els.flashEmpty.classList.toggle("hidden", !done);
+    els.flashEmpty.textContent = total
+      ? "Every card seen, oldest first. Start another round to go again."
+      : "Nothing here yet — finish one attempt and your vocabulary collects itself.";
+    els.btnFlashRestart.classList.toggle("hidden", !done || total === 0);
+    els.btnFlashAgain.classList.toggle("hidden", done);
+    els.btnFlashGot.classList.toggle("hidden", done);
+    els.flashHint.classList.toggle("hidden", total === 0);
+
+    if (done) {
+      els.flashProgress.textContent = total ? pad2(total) + " saved" : "";
       return;
     }
 
-    if (flash.pos >= flash.deck.length) {
-      els.flashTerm.textContent = "Round complete.";
-      els.btnFlashReveal.textContent = "Review again";
-      els.flashProgress.textContent =
-        total + (total === 1 ? " card saved" : " cards saved") + " · nice work";
+    els.flashProgress.textContent = pad2(flash.pos + 1) + " / " + pad2(flash.deck.length);
+
+    /* Three edges only: the cards behind carry no text, just depth. */
+    const visible = queue.slice(0, 3);
+    for (let depth = visible.length - 1; depth >= 0; depth -= 1) {
+      els.flashDeck.appendChild(
+        buildFlashCard(visible[depth], depth, flash.pos + depth, flash.deck.length)
+      );
+    }
+  }
+
+  function buildFlashCard(entry, depth, index, total) {
+    const card = document.createElement("div");
+    card.className = "fcard pos-" + depth;
+    card.style.zIndex = String(20 - depth);
+    if (depth > 0) return card;                      // an edge, not a card face
+
+    if (flash.revealed) card.classList.add("revealed");
+    card.innerHTML =
+      '<div class="fcard-man">' +
+        '<span class="fcard-step">' + pad2(index + 1) + "<i>/" + pad2(total) + "</i></span>" +
+        '<span class="fcard-topic">' + escapeHtml(entry.topic || "Collected automatically") + "</span>" +
+      "</div>" +
+      '<p class="fcard-term">' + escapeHtml(entry.term) + "</p>" +
+      (entry.said ? '<p class="fcard-said">“' + escapeHtml(entry.said) + "”</p>" : "") +
+      '<p class="fcard-def">' + escapeHtml(entry.definition || "No note saved.") + "</p>" +
+      '<div class="fcard-foot">' +
+        '<span class="fcard-tap">Tap for the note</span>' +
+        '<span class="fcard-keys">← again · knew it →</span>' +
+      "</div>" +
+      '<div class="fcard-stamp got">Got it</div>' +
+      '<div class="fcard-stamp again">Again</div>';
+    attachCardGestures(card);
+    return card;
+  }
+
+  /* ── Dragging the top card: horizontal commits, a tap reveals ── */
+  let cardDrag = null;
+
+  function attachCardGestures(card) {
+    card.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      cardDrag = { card: card, x: e.clientX, y: e.clientY, dx: 0, moved: false };
+      card.classList.add("dragging");
+      try { card.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+
+    card.addEventListener("pointermove", (e) => {
+      if (!cardDrag || cardDrag.card !== card) return;
+      const dx = e.clientX - cardDrag.x;
+      const dy = e.clientY - cardDrag.y;
+      cardDrag.dx = dx;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) cardDrag.moved = true;
+      if (!cardDrag.moved) return;
+      card.style.transform =
+        "translate(" + dx + "px, " + (dy * 0.14).toFixed(1) + "px) rotate(" + (dx * 0.03).toFixed(2) + "deg)";
+      card.style.setProperty("--swipe", Math.min(1, Math.abs(dx) / SWIPE_THRESHOLD).toFixed(2));
+      card.classList.toggle("to-right", dx > 0);
+      card.classList.toggle("to-left", dx < 0);
+    });
+
+    card.addEventListener("pointerup", () => finishCardDrag(true));
+    card.addEventListener("pointercancel", () => finishCardDrag(false));
+  }
+
+  function finishCardDrag(commit) {
+    const drag = cardDrag;
+    if (!drag) return;
+    cardDrag = null;
+    const card = drag.card;
+    card.classList.remove("dragging");
+
+    if (!drag.moved) {                        // a tap, not a swipe
+      flash.revealed = !flash.revealed;
+      card.classList.toggle("revealed", flash.revealed);
       return;
     }
 
-    const entry = currentFlashEntry();
-    if (!entry) {
-      flash.pos += 1;
-      renderFlash();
+    if (commit && Math.abs(drag.dx) >= SWIPE_THRESHOLD) {
+      swipeCard(drag.dx > 0 ? 1 : -1);
       return;
     }
 
-    els.flashTerm.textContent = entry.term;
-    els.flashSaid.textContent = entry.said ? "You said: “" + entry.said + "”" : "";
-    els.flashSaid.classList.toggle("hidden", !entry.said);
-    els.flashDef.textContent = entry.definition || "No note saved.";
-    const left = flash.deck.length - flash.pos - 1;
-    els.flashProgress.textContent =
-      flash.pos + 1 + " / " + flash.deck.length + " · " + left + " left in this round";
+    card.style.transform = "";                // not far enough: back to the table
+    card.classList.remove("to-right", "to-left");
+    card.style.setProperty("--swipe", "0");
+  }
+
+  function swipeCard(dir) {
+    if (flash.pos >= flash.deck.length) return;
+    const card = els.flashDeck.querySelector(".fcard.pos-0");
+    if (card) {
+      card.dataset.flying = "1";
+      card.classList.remove("dragging");
+      card.style.zIndex = "30";
+      card.style.transition = "transform 320ms var(--ease-out), opacity 300ms ease-out";
+      card.style.transform = "translate(" + dir * 130 + "%, -4%, 0) rotate(" + dir * 15 + "deg)";
+      card.style.opacity = "0";
+      setTimeout(() => card.remove(), 360);
+    }
+    flash.revealed = false;
+    gradeFlash(dir > 0);
   }
 
   function gradeFlash(known) {
@@ -1590,21 +1684,12 @@
   els.btnVocabBack.addEventListener("click", goHome);
   els.btnScoreBack.addEventListener("click", goHome);
 
-  els.btnFlashReveal.addEventListener("click", () => {
-    if (flash.pos >= flash.deck.length) { // the button reads "Review again"
-      buildFlashDeck();
-      renderFlash();
-      return;
-    }
-    if (flash.revealed) return;
-    flash.revealed = true;
-    els.flashDef.classList.remove("hidden");
-    els.btnFlashReveal.classList.add("hidden");
-    els.flashGrade.classList.remove("hidden");
+  els.btnFlashGot.addEventListener("click", () => swipeCard(1));
+  els.btnFlashAgain.addEventListener("click", () => swipeCard(-1));
+  els.btnFlashRestart.addEventListener("click", () => {
+    buildFlashDeck();
+    renderFlash();
   });
-
-  els.btnFlashGot.addEventListener("click", () => gradeFlash(true));
-  els.btnFlashAgain.addEventListener("click", () => gradeFlash(false));
 
   /* ────────────── Init ────────────── */
   resetTimerUI();
