@@ -34,9 +34,6 @@
 
       <!-- ── practice ── -->
       <div class="screen-main practice-main">
-        <h1 class="display">A little courage.<br />A clearer voice.</h1>
-        <p class="subcopy">Speak before you overthink.<br />One surprise topic. Your own pace.</p>
-
         <div class="timer-dial">
           <img class="dial-ring outer-ring" src="assets/c1476.svg" alt="" aria-hidden="true" />
           <img class="dial-ring inner-ring" src="assets/508ef.svg" alt="" aria-hidden="true" />
@@ -63,7 +60,6 @@
 
       <!-- ── speaking ── -->
       <section id="timer-section" class="screen-main speaking-main hidden">
-        <p class="eyebrow accent topic-eyebrow">BLIND DRAW&nbsp;&nbsp;/&nbsp;&nbsp;<span id="topic-index">TOPIC</span></p>
         <h1 id="topic-text" class="topic display placeholder">—</h1>
 
         <div class="timer-dial live timer-wrap">
@@ -150,19 +146,16 @@
         <h1 class="display">Make it<br />second nature.</h1>
         <p class="subcopy">Better words, collected as you speak.</p>
 
-        <div class="deck-meta">
-          <span id="flash-progress">0 CARDS IN YOUR DECK</span>
-          <span class="deck-meta-right">OLDEST FIRST</span>
-        </div>
+        <span id="flash-progress" class="gone" aria-hidden="true">0 CARDS IN YOUR DECK</span>
 
         <div id="flash-stage" class="card-stack">
           <div id="flash-deck" class="flash-deck"></div>
           <p id="flash-empty" class="flash-empty hidden">Nothing here yet — finish one attempt and your vocabulary collects itself.</p>
         </div>
 
-        <div id="flash-hint" class="card-actions hidden">
-          <button id="btn-flash-again" class="secondary-button">←&nbsp;&nbsp;Practice again</button>
-          <button id="btn-flash-got" class="primary-button small">Knew it&nbsp;&nbsp;→</button>
+        <div id="flash-hint" class="card-actions hidden" aria-hidden="true">
+          <button id="btn-flash-again" class="secondary-button" tabindex="-1">←&nbsp;&nbsp;Practice again</button>
+          <button id="btn-flash-got" class="primary-button small" tabindex="-1">Knew it&nbsp;&nbsp;→</button>
         </div>
         <button id="btn-flash-restart" class="secondary-button wide hidden">Review round</button>
 
@@ -173,8 +166,6 @@
     <!-- ═══════════════ 05 · HISTORY ═══════════════ -->
     <main id="screen-history" class="screen hidden">
       <div class="screen-main history-main">
-        <h1 class="display">Small steps.<br />Stronger voice.</h1>
-
         <div id="history-empty" class="history-empty hidden">
           <p>Nothing here yet.</p>
           <p class="history-empty-sub">Finish one attempt and your progress starts building.</p>
@@ -220,21 +211,18 @@
     <nav class="bottom-nav" aria-label="Primary navigation">
       <button id="btn-nav-practice" class="nav-item selected" aria-current="page">
         <span class="active-line"></span>
-        <img class="ico-off" src="assets/370b6.svg" alt="" aria-hidden="true" />
-        <img class="ico-on" src="assets/4f59d.svg" alt="" aria-hidden="true" />
-        <span>Practice</span>
+        <img class="ico-off" src="assets/370b6.svg" alt="Practice" />
+        <img class="ico-on" src="assets/4f59d.svg" alt="Practice" />
       </button>
       <button id="btn-vocab" class="nav-item">
         <span class="active-line"></span>
-        <img class="ico-off" src="assets/09880.svg" alt="" aria-hidden="true" />
-        <img class="ico-on" src="assets/3e776.svg" alt="" aria-hidden="true" />
-        <span>Vocabulary</span>
+        <img class="ico-off" src="assets/09880.svg" alt="Vocabulary" />
+        <img class="ico-on" src="assets/3e776.svg" alt="Vocabulary" />
       </button>
       <button id="btn-history" class="nav-item">
         <span class="active-line"></span>
-        <img class="ico-off" src="assets/006b7.svg" alt="" aria-hidden="true" />
-        <img class="ico-on" src="assets/3c4dc.svg" alt="" aria-hidden="true" />
-        <span>History</span>
+        <img class="ico-off" src="assets/006b7.svg" alt="History" />
+        <img class="ico-on" src="assets/3c4dc.svg" alt="History" />
       </button>
     </nav>
   </div>

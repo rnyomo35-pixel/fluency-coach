@@ -239,8 +239,8 @@ input { font: inherit; }
   position: relative;
   display: grid;
   place-items: center;
-  width: 198px;
-  height: 198px;
+  width: min(64vw, 242px);
+  height: min(64vw, 242px);
   margin: auto;
 }
 .dial-svg {
@@ -259,9 +259,9 @@ input { font: inherit; }
   display: block;
 }
 .dial-ring.inner-ring {
-  inset: 11px;
-  width: 176px;
-  height: 176px;
+  inset: 5.55%;
+  width: 88.9%;
+  height: 88.9%;
 }
 .dial-ticks line {
   stroke: #45433b;
@@ -271,20 +271,20 @@ input { font: inherit; }
 .timer-value {
   position: relative;
   z-index: 1;
-  margin-top: -20px;
+  margin-top: -26px;
   color: var(--gold);
   font-family: var(--serif);
-  font-size: 66px;
+  font-size: 82px;
   line-height: 1;
 }
 .timer-label {
   position: absolute;
   z-index: 1;
-  top: 128px;
+  top: 66%;
   width: 100%;
   text-align: center;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.7px;
 }
 
@@ -305,7 +305,7 @@ input { font: inherit; }
 .topic.placeholder { color: var(--muted); font-size: 28px; }
 
 .timer-dial.live { margin-top: auto; margin-bottom: auto; }
-.speaking-main .transcript { margin-bottom: 4px; }
+.speaking-main .transcript { margin-bottom: 20px; }
 .timer-dial.live .dial-circle.live-circle {
   stroke: #3b3931;
   stroke-width: 1;
@@ -322,7 +322,7 @@ input { font: inherit; }
 }
 .timer-dial.live .timer-value {
   color: var(--cream);
-  font-size: 60px;
+  font-size: 72px;
   letter-spacing: 0.5px;
   margin-top: 0;
 }
@@ -405,8 +405,7 @@ input { font: inherit; }
 
 /* start button: icon leads, as in the design */
 #screen-flow:not(.is-speaking) #btn-start-speaking {
-  justify-content: flex-start;
-  padding-left: 30px;
+  justify-content: center;
 }
 #btn-start-speaking .btn-spinner {
   width: 14px;
@@ -445,14 +444,15 @@ input { font: inherit; }
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-direction: column;
-  gap: 7px;
-  padding-top: 15px;
+  gap: 0;
+  padding-top: 0;
   color: var(--muted);
   font-size: 10.5px;
   transition: color 180ms;
 }
-.nav-item img { display: block; width: 21px; height: 21px; }
+.nav-item img { display: block; width: 25px; height: 25px; }
 .nav-item .ico-on { display: none; }
 .nav-item.selected .ico-on { display: block; }
 .nav-item.selected .ico-off { display: none; }
@@ -581,6 +581,11 @@ input { font: inherit; }
 
 /* ────────── 04 · vocabulary ────────── */
 .vocabulary-main, .history-main { padding-top: 30px; }
+.vocabulary-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
 .vocabulary-main .display { margin-top: 8px; }
 .vocabulary-main .subcopy { margin-top: 16px; font-size: 14px; }
 .deck-meta {
@@ -600,7 +605,7 @@ input { font: inherit; }
 .card-stack {
   position: relative;
   height: 322px;
-  margin-top: 14px;
+  margin: auto 0;
 }
 .flash-deck { position: absolute; inset: 0; }
 .flash-empty {
@@ -641,7 +646,7 @@ input { font: inherit; }
 .fcard-man {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
 }
 .fcard-type {
   color: var(--gold);
@@ -723,9 +728,7 @@ input { font: inherit; }
 .fcard.to-left .fcard-stamp.again { opacity: calc(var(--swipe, 0) * 0.9); }
 
 .card-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  display: none !important;
 }
 /* ────────── 05 · history ────────── */
 .history-main .display { margin-top: 8px; }

@@ -1601,7 +1601,6 @@
     if (flash.revealed) card.classList.add("revealed");
     card.innerHTML =
       '<div class="fcard-man">' +
-        '<span class="fcard-type">' + escapeHtml(String(entry.type || "expression").toUpperCase()) + "</span>" +
         '<span class="fcard-step">' + pad2(index + 1) + "<i> / " + pad2(total) + "</i></span>" +
       "</div>" +
       '<p class="fcard-term">' + escapeHtml(entry.term) + "</p>" +
