@@ -661,6 +661,7 @@ input { font: inherit; }
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 10px;
 }
 .fcard-type {
   color: var(--gold);
@@ -728,10 +729,7 @@ input { font: inherit; }
 }
 .fcard-keys { display: none; }
 .fcard-stamp {
-  position: absolute;
-  top: 52px;
-  right: 18px;
-  padding: 5px 11px;
+  padding: 4px 9px;
   border: 1px solid currentColor;
   border-radius: 999px;
   font: 8.5px/1 var(--mono);

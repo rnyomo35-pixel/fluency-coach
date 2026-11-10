@@ -1603,6 +1603,8 @@
     card.innerHTML =
       '<div class="fcard-man">' +
         '<span class="fcard-step">' + pad2(index + 1) + "<i> / " + pad2(total) + "</i></span>" +
+        '<div class="fcard-stamp got">Got it</div>' +
+        '<div class="fcard-stamp again">Again</div>' +
       "</div>" +
       '<p class="fcard-term">' + escapeHtml(entry.term) + "</p>" +
       '<span class="instead-label">INSTEAD OF</span>' +
@@ -1610,9 +1612,7 @@
       '<p class="fcard-def">' + escapeHtml(entry.definition || "No note saved.") + "</p>" +
       '<div class="fcard-foot">' +
         '<span class="fcard-tap">Tap to see the explanation ↗</span>' +
-      "</div>" +
-      '<div class="fcard-stamp got">Got it</div>' +
-      '<div class="fcard-stamp again">Again</div>';
+      "</div>";
     attachCardGestures(card);
     return card;
   }
