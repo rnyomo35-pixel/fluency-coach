@@ -1594,6 +1594,11 @@
     card.style.zIndex = String(20 - depth);
     if (depth > 0) return card;                      // an edge, not a card face
 
+    /* Long phrases shrink so the card never spills over its footer. */
+    const termLength = (entry.term || "").length;
+    const termSize =
+      termLength <= 60 ? 36 : termLength <= 100 ? 30 : termLength <= 150 ? 25 : termLength <= 220 ? 21 : 18;
+    card.style.setProperty("--term-size", termSize + "px");
     if (flash.revealed) card.classList.add("revealed");
     card.innerHTML =
       '<div class="fcard-man">' +
