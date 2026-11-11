@@ -1532,7 +1532,8 @@
 
   /* A deck, not a list: exactly one card is on the table. Know-it is a swipe to
      the right, "study again" a swipe to the left, and the queue keeps the order
-     the cards were collected in — the oldest first. */
+     the cards were collected in — the oldest first. Each card is dealt once per
+     round, so the deck always reaches its end. */
   const SWIPE_THRESHOLD = 88;
 
   function pad2(n) {
@@ -1731,8 +1732,10 @@
       list[i].last = Date.now();
       saveVocabList(list);
     }
+    /* One pass per round: a card leaves the deck whichever way it is swiped,
+       so the queue always runs out and the round can end. "Again" only marks
+       it as still learning; the next round deals it again. */
     if (!flash.resolved.includes(entry.id)) flash.resolved.push(entry.id);
-    if (!known) flash.deck.push(entry.id); // comes back later in this round
     flash.pos += 1;
     flash.revealed = false;
     saveFlashState();
