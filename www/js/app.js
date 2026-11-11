@@ -1725,8 +1725,12 @@
       card.classList.toggle("to-left", dx < 0);
     });
 
+    /* iOS cancels the pointer when the WebView decides the touch is a scroll.
+       That is not the learner aborting: if the card already travelled past the
+       threshold, honour the swipe instead of snapping it back. */
     card.addEventListener("pointerup", () => finishCardDrag(true));
-    card.addEventListener("pointercancel", () => finishCardDrag(false));
+    card.addEventListener("pointercancel", () => finishCardDrag(true));
+    card.addEventListener("lostpointercapture", () => finishCardDrag(true));
   }
 
   function finishCardDrag(commit) {

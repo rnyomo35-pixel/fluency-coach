@@ -722,7 +722,9 @@ button,
   background: var(--card);
   color: var(--cream);
   overflow: hidden;
-  touch-action: pan-y;
+  /* The card owns the gesture completely: with pan-y the WebView steals the
+     touch mid-swipe and the card snaps back. */
+  touch-action: none;
   transition: transform 320ms var(--ease-out), opacity 260ms ease-out;
   will-change: transform;
 }
