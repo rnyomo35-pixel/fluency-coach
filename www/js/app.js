@@ -1014,6 +1014,14 @@
             }
           }
         }
+        /* A stream can close without the trailing blank line, leaving the last
+           event in the buffer: flush it instead of dropping the tail. */
+        if (buffer.trim()) {
+          buffer.split("\n").forEach((line) => {
+            const clean = line.replace(/\r$/, "");
+            if (clean.indexOf("data:") === 0) dataLines.push(clean.slice(5).trim());
+          });
+        }
         if (dataLines.length) takeEvent(dataLines.join("\n"));
       } else {
         takeEvent(await res.text()); // no ReadableStream in this webview
@@ -1031,6 +1039,20 @@
       throw failure;
     }
     return text;
+  }
+
+  /* Gemini sometimes wraps the object in a markdown fence or adds a stray
+     sentence around it, and a stream can stop a character short. Normalise what
+     can be salvaged before parsing, so a nearly-good reply is not thrown away. */
+  function repairJson(raw) {
+    let s = String(raw || "").trim();
+    s = s.replace(/^```[a-zA-Z]*\s*/, "").replace(/\s*```$/, "").trim();
+    const start = s.indexOf("{");
+    if (start > 0) s = s.slice(start);
+    const lastBrace = s.lastIndexOf("}");
+    if (lastBrace >= 0 && lastBrace < s.length - 1) s = s.slice(0, lastBrace + 1);
+    s = s.replace(/,\s*([}\]])/g, "$1"); // trailing commas before a closing bracket
+    return s;
   }
 
   async function evaluateWithGemini(transcript, session) {
@@ -1098,9 +1120,16 @@
 
       let parsed;
       try {
-        parsed = JSON.parse(text);
+        parsed = JSON.parse(repairJson(text));
       } catch (_) {
-        throw new Error("Gemini's reply wasn't valid JSON — try again.");
+        /* The stream ended a beat early: one clean, non-stitched retry is worth
+           more than sending the learner back to the start. */
+        const again = await requestEvaluation(GEMINI_MODELS[0], body, apiKey);
+        try {
+          parsed = JSON.parse(repairJson(again));
+        } catch (__) {
+          throw new Error("Gemini's reply wasn't valid JSON — try again.");
+        }
       }
       if (!parsed || typeof parsed !== "object") {
         throw new Error("Gemini's reply was empty — try again.");
