@@ -704,7 +704,7 @@ button,
   transition: transform 140ms var(--ease-out), opacity 140ms;
 }
 .flash-restart::after {
-  content: "Start the deck again";
+  content: attr(data-caption);
   color: var(--muted);
   font: 9.5px/1 var(--mono);
   letter-spacing: 0.9px;

@@ -1591,7 +1591,13 @@
     try {
       localStorage.setItem(
         FLASH_STATE_KEY,
-        JSON.stringify({ ids: flash.deck, pos: flash.pos, total: flash.total, resolved: flash.resolved })
+        JSON.stringify({
+          ids: flash.deck,
+          pos: flash.pos,
+          total: flash.total,
+          resolved: flash.resolved,
+          all: flash.all,
+        })
       );
     } catch (_) {}
   }
@@ -1606,12 +1612,17 @@
 
   /* A round remembers how far it got: a card you already swiped away is not
      dealt again when you come back to the tab. New cards join at the end. */
-  function buildFlashDeck(restart) {
+  /* A learned card (box 3) leaves the deck for good: only cards still being
+     learned are dealt, unless the learner explicitly asks for the whole deck. */
+  function buildFlashDeck(restart, includeLearned) {
+    const saved = restart ? null : loadFlashState();
+    const all = includeLearned !== undefined ? includeLearned : !!(saved && saved.all);
+    flash.all = all;
     const ids = loadVocab()
       .slice()
       .sort((x, y) => (x.t || 0) - (y.t || 0))
+      .filter((e) => all || (e.box || 0) < 3)
       .map((e) => e.id);
-    const saved = restart ? null : loadFlashState();
     if (saved) {
       const live = new Set(ids);
       const kept = saved.ids.filter((id) => live.has(id));
@@ -1650,8 +1661,16 @@
     );
 
     const done = queue.length === 0;
+    const remaining = list.filter((e) => (e.box || 0) < 3).length;
     els.flashEmpty.classList.toggle("hidden", total > 0);
     els.btnFlashRestart.classList.toggle("hidden", !done || total === 0);
+    if (done && total > 0) {
+      const reviewAll = remaining === 0;
+      els.btnFlashRestart.textContent = reviewAll ? "Review all" : "Again";
+      els.btnFlashRestart.dataset.caption = reviewAll
+        ? "All cards, from the top"
+        : "Start the deck again";
+    }
     els.btnFlashAgain.classList.toggle("hidden", done);
     els.btnFlashGot.classList.toggle("hidden", done);
     els.flashHint.classList.toggle("hidden", total === 0);
@@ -1779,7 +1798,8 @@
     const i = list.findIndex((e) => e.id === entry.id);
     if (i >= 0) {
       list[i].seen = (list[i].seen || 0) + 1;
-      list[i].box = known ? Math.min(3, (list[i].box || 0) + 1) : 0;
+      /* "Got it" retires the card; "again" keeps it in the learning deck. */
+      list[i].box = known ? 3 : 0;
       list[i].last = Date.now();
       saveVocabList(list);
     }
@@ -1810,7 +1830,8 @@
   els.btnFlashGot.addEventListener("click", () => swipeCard(1));
   els.btnFlashAgain.addEventListener("click", () => swipeCard(-1));
   els.btnFlashRestart.addEventListener("click", () => {
-    buildFlashDeck(true);
+    const remaining = loadVocab().filter((e) => (e.box || 0) < 3).length;
+    buildFlashDeck(true, remaining === 0);
     renderFlash();
   });
 
