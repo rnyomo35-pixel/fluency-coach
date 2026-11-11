@@ -385,6 +385,7 @@
   const TOPIC_PLACEHOLDER = "Tap start — the topic appears the instant the clock starts.";
   function goHome() {
     if (state.recording || state.evaluating) return;
+    if (readBeat) readBeat.cancel();
     state.topic = "";
     els.topicText.textContent = TOPIC_PLACEHOLDER;
     els.topicText.classList.add("placeholder");
@@ -661,8 +662,12 @@
   const drain = (ms) => new Promise((r) => setTimeout(r, ms));
 
   els.btnStart.addEventListener("click", () => {
-    /* One button, two jobs: start the blind attempt, or end it when the
-       learner has finished the thought. */
+    /* One button, three jobs: skip the read-in, start the blind attempt, or end
+       it when the learner has finished the thought. */
+    if (readBeat) {
+      readBeat.skip();
+      return;
+    }
     if (state.recording && state.session && state.session.requestStop) {
       setStartButton(evaluatingLabel, true);
       state.session.requestStop();
@@ -670,6 +675,41 @@
     }
     startSpeakingFlow();
   });
+
+  /* Reading beat: the topic is on screen, the clock is still. The learner gets
+     a few seconds to see what they have to talk about before the mic opens. */
+  const READ_SECONDS = 6;
+  let readBeat = null;   // { skip(), cancel() } while the countdown runs
+
+  function startReadingBeat() {
+    return new Promise((resolve) => {
+      let left = READ_SECONDS;
+      let timer = 0;
+      let settled = false;
+      const end = (completed) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        readBeat = null;
+        els.timerSeconds.classList.remove("count-in");
+        resolve(completed);
+      };
+      readBeat = { skip: () => end(true), cancel: () => end(false) };
+      els.timerSeconds.classList.add("count-in");
+      const tick = () => {
+        if (settled) return;
+        els.timerSeconds.textContent = pad2(left);
+        setStartButton("Start now · " + left, false);
+        if (left === 1) {
+          timer = setTimeout(() => end(true), 1000);
+          return;
+        }
+        left -= 1;
+        timer = setTimeout(tick, 1000);
+      };
+      tick();
+    });
+  }
 
   async function startSpeakingFlow(sameTopic) {
     if (state.recording || state.evaluating) return;
@@ -680,8 +720,8 @@
       return;
     }
 
-    /* Blind draw: the topic is chosen, revealed and timed in the SAME task as
-       the tap — there is no window in which an answer could be planned. */
+    /* Blind draw: the topic is chosen and revealed at the tap, then the mic and
+       the clock wait through a short reading beat. */
     const topic = sameTopic || getRandomTopic(state.topic);
     state.topic = topic;
     showFlowScreen();
@@ -689,9 +729,16 @@
     revealTopic(topic);
     els.timerSection.classList.remove("hidden");
     els.liveTranscript.classList.add("active");
+    els.liveTranscript.textContent =
+      "Read the topic — the mic opens in " + READ_SECONDS + " seconds.";
+    els.screenFlow.classList.add("is-speaking");
+    setStartButton("Start now · " + READ_SECONDS, false);
+
+    const ready = await startReadingBeat();
+    if (!ready) return;                       // cancelled (back button)
+
     els.liveTranscript.textContent = "Listening…";
     els.btnStart.classList.add("recording");
-    els.screenFlow.classList.add("is-speaking");
     setStartButton(stopLabel, false);
 
     const session = { topic: topic, transcript: "", error: null, elapsedSec: 0 };

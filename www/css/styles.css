@@ -344,6 +344,8 @@ button,
   stroke-linecap: round;
   transition: stroke-dashoffset 400ms linear;
 }
+/* The read-in count sits in the dial in brass until the mic opens. */
+.timer-dial.live .timer-value.count-in { color: var(--gold); }
 .timer-dial.live .timer-value {
   color: var(--cream);
   font-size: 72px;
