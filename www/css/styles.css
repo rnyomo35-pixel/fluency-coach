@@ -97,6 +97,27 @@ input { font: inherit; }
 .hidden { display: none !important; }
 .gone { display: none !important; }
 
+/* No pinch or double-tap zoom inside the app shell. */
+html,
+body {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* No iOS callout, copy menu or drag ghost on the app's chrome and artwork —
+   a long press must not offer to save a menu icon as a photo. */
+img,
+button,
+.streak,
+.timer-dial,
+.fcard,
+.nav-item {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 /* ────────── shell ────────── */
 .app-shell {
   position: relative;
@@ -132,13 +153,13 @@ input { font: inherit; }
   z-index: 10;
   display: flex;
   align-items: center;
-  height: 76px;
-  padding: 12px 24px 0;
+  height: 64px;
+  padding: 2px 24px 0;
 }
 .practice-head {
-  height: 64px;
+  height: 54px;
   justify-content: space-between;
-  padding: 14px 24px 0;
+  padding: 0 24px 0;
 }
 .wordmark {
   color: var(--cream);
@@ -433,10 +454,10 @@ input { font: inherit; }
   grid-template-columns: repeat(3, 1fr);
   flex: none;
   width: 100%;
-  /* The bar itself runs into the home-indicator area, so no bare strip shows
-     underneath it; the icons stay centred in the space above it. */
+  /* The bar runs to the very bottom edge and the icons sit low in it — just
+     clear of the home indicator — so no empty band shows under them. */
   height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(0px, calc(env(safe-area-inset-bottom, 0px) - 20px));
   margin: 0;
   border-top: 1px solid var(--line-soft);
   background: rgba(17, 17, 16, 0.96);
@@ -480,34 +501,40 @@ input { font: inherit; }
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-top: 4px;
-  padding-bottom: 24px;
+  padding-bottom: 42px;
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
 .feedback-main::-webkit-scrollbar { display: none; }
 .feedback-title { font-size: clamp(36px, 10.6vw, 44px); line-height: 1.06; }
 .feedback-meta { margin-top: 8px; font-size: 13px; }
 .score-card {
-  display: grid;
-  grid-template-columns: 52px 40px 1fr;
+  display: flex;
   align-items: center;
-  min-height: 92px;
-  margin-top: 20px;
-  padding: 0 16px;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 14px 16px;
   border-radius: 16px;
   background: var(--card);
+}
+.score-lockup {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  flex: none;
 }
 .score {
   color: var(--gold);
   font-family: var(--serif);
-  font-size: 68px;
+  font-size: 60px;
   line-height: 1;
 }
 .score-of {
-  align-self: center;
   color: var(--muted);
   font-family: var(--mono);
   font-size: 11px;
 }
+.score-copy { min-width: 0; }
 .score-copy strong {
   display: block;
   font-size: 14px;
@@ -519,7 +546,7 @@ input { font: inherit; }
   color: var(--muted);
   font-size: 12.5px;
 }
-.feedback-section { margin-top: 26px; }
+.feedback-section { margin-top: 22px; }
 .quote {
   margin-top: 12px;
   color: var(--cream);
@@ -527,9 +554,9 @@ input { font: inherit; }
   line-height: 1.55;
 }
 .refinements {
-  margin-top: 30px;
+  margin-top: 24px;
   border-top: 1px solid var(--line-soft);
-  padding-top: 22px;
+  padding-top: 18px;
 }
 .mistakes-list { list-style: none; margin-top: 10px; }
 .mistakes-list li {
@@ -563,7 +590,7 @@ input { font: inherit; }
   line-height: 1.5;
 }
 .c1-card {
-  margin-top: 28px;
+  margin-top: 22px;
   padding: 16px 17px 20px;
   border: 1px solid var(--brass-line);
   border-radius: 16px;
@@ -580,7 +607,7 @@ input { font: inherit; }
   font-size: 12px;
   text-align: center;
 }
-.next-tip { margin-top: 26px; }
+.next-tip { margin-top: 22px; }
 .feedback-text {
   margin-top: 9px;
   font-size: 13.5px;
@@ -590,7 +617,7 @@ input { font: inherit; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
-  margin-top: 26px;
+  margin-top: 22px;
 }
 
 /* ────────── 04 · vocabulary ────────── */
@@ -599,6 +626,7 @@ input { font: inherit; }
   display: flex;
   flex-direction: column;
   flex: 1;
+  padding-bottom: 22px;
 }
 .vocabulary-main .display { margin-top: 8px; }
 .vocabulary-main .subcopy { margin-top: 16px; font-size: 14px; }
@@ -882,7 +910,7 @@ input { font: inherit; }
   width: min(100%, 520px);
   max-height: 86dvh;
   overflow-y: auto;
-  padding: 14px 24px calc(24px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 24px calc(34px + env(safe-area-inset-bottom, 0px));
   border: 1px solid var(--line);
   border-radius: 24px 24px 0 0;
   background: var(--card);

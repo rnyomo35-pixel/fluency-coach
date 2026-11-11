@@ -1454,6 +1454,7 @@
   /* ────────────── Vocabulary & flashcards (localStorage) ────────────── */
 
   const flash = { deck: [], pos: 0, revealed: false };
+  const FLASH_STATE_KEY = "offscript_flash_round";
 
   function loadVocab() {
     try {
@@ -1535,13 +1536,40 @@
     return String(n).padStart(2, "0");
   }
 
-  function buildFlashDeck() {
-    flash.deck = loadVocab()
+  function saveFlashState() {
+    try {
+      localStorage.setItem(FLASH_STATE_KEY, JSON.stringify({ ids: flash.deck, pos: flash.pos }));
+    } catch (_) {}
+  }
+
+  function loadFlashState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FLASH_STATE_KEY) || "null");
+      if (saved && Array.isArray(saved.ids)) return saved;
+    } catch (_) {}
+    return null;
+  }
+
+  /* A round remembers how far it got: a card you already swiped away is not
+     dealt again when you come back to the tab. New cards join at the end. */
+  function buildFlashDeck(restart) {
+    const ids = loadVocab()
       .slice()
       .sort((x, y) => (x.t || 0) - (y.t || 0))
       .map((e) => e.id);
-    flash.pos = 0;
+    const saved = restart ? null : loadFlashState();
+    if (saved) {
+      const live = new Set(ids);
+      const kept = saved.ids.filter((id) => live.has(id));
+      const keptSet = new Set(kept);
+      flash.deck = kept.concat(ids.filter((id) => !keptSet.has(id)));
+      flash.pos = Math.min(saved.pos || 0, flash.deck.length);
+    } else {
+      flash.deck = ids;
+      flash.pos = 0;
+    }
     flash.revealed = false;
+    saveFlashState();
   }
 
   function currentFlashEntry() {
@@ -1699,6 +1727,7 @@
     if (!known) flash.deck.push(entry.id); // comes back later in this round
     flash.pos += 1;
     flash.revealed = false;
+    saveFlashState();
     renderFlash();
   }
 
@@ -1719,7 +1748,7 @@
   els.btnFlashGot.addEventListener("click", () => swipeCard(1));
   els.btnFlashAgain.addEventListener("click", () => swipeCard(-1));
   els.btnFlashRestart.addEventListener("click", () => {
-    buildFlashDeck();
+    buildFlashDeck(true);
     renderFlash();
   });
 
