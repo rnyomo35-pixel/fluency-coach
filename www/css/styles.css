@@ -510,30 +510,30 @@ button,
 .feedback-meta { margin-top: 8px; font-size: 13px; }
 .score-card {
   display: grid;
-  grid-template-columns: 76px 1fr;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-top: 18px;
   padding: 14px 16px;
   border-radius: 16px;
   background: var(--card);
 }
-.score-lockup {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-  flex: none;
-}
+/* The "/ 10" is part of the same inline run as the digit, so it can never
+   drift away from the number's baseline. */
 .score {
   color: var(--gold);
   font-family: var(--serif);
   font-size: 54px;
   line-height: 1;
+  white-space: nowrap;
 }
-.score-of {
+.score::after {
+  content: " / 10";
+  margin-left: 1px;
   color: var(--muted);
   font-family: var(--mono);
   font-size: 11px;
+  letter-spacing: 0.4px;
 }
 .score-copy { min-width: 0; }
 .score-copy strong {

@@ -1456,7 +1456,7 @@
 
   /* ────────────── Vocabulary & flashcards (localStorage) ────────────── */
 
-  const flash = { deck: [], pos: 0, revealed: false };
+  const flash = { deck: [], pos: 0, revealed: false, total: 0, resolved: [] };
   const FLASH_STATE_KEY = "offscript_flash_round";
 
   function loadVocab() {
@@ -1541,7 +1541,10 @@
 
   function saveFlashState() {
     try {
-      localStorage.setItem(FLASH_STATE_KEY, JSON.stringify({ ids: flash.deck, pos: flash.pos }));
+      localStorage.setItem(
+        FLASH_STATE_KEY,
+        JSON.stringify({ ids: flash.deck, pos: flash.pos, total: flash.total, resolved: flash.resolved })
+      );
     } catch (_) {}
   }
 
@@ -1567,10 +1570,15 @@
       const keptSet = new Set(kept);
       flash.deck = kept.concat(ids.filter((id) => !keptSet.has(id)));
       flash.pos = Math.min(saved.pos || 0, flash.deck.length);
+      flash.resolved = (Array.isArray(saved.resolved) ? saved.resolved : []).filter((id) => live.has(id));
     } else {
       flash.deck = ids;
       flash.pos = 0;
+      flash.resolved = [];
     }
+    /* The counter is the number of distinct cards in the round — swiping a card
+       to the back of the queue must not inflate the denominator. */
+    flash.total = ids.length;
     flash.revealed = false;
     saveFlashState();
   }
@@ -1610,9 +1618,8 @@
     /* Three edges only: the cards behind carry no text, just depth. */
     const visible = queue.slice(0, 3);
     for (let depth = visible.length - 1; depth >= 0; depth -= 1) {
-      els.flashDeck.appendChild(
-        buildFlashCard(visible[depth], depth, flash.pos + depth, flash.deck.length)
-      );
+      const step = Math.min(flash.resolved.length + depth, Math.max(flash.total - 1, 0));
+      els.flashDeck.appendChild(buildFlashCard(visible[depth], depth, step, flash.total));
     }
   }
 
@@ -1724,6 +1731,7 @@
       list[i].last = Date.now();
       saveVocabList(list);
     }
+    if (!flash.resolved.includes(entry.id)) flash.resolved.push(entry.id);
     if (!known) flash.deck.push(entry.id); // comes back later in this round
     flash.pos += 1;
     flash.revealed = false;
