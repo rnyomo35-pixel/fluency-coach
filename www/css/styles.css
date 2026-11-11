@@ -496,25 +496,28 @@ button,
 /* The scorecard is the one genuinely long report: it scrolls inside its own
    column so the tab bar never moves and nothing is cut off. */
 .feedback-main {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-top: 4px;
-  padding-bottom: 42px;
+  padding-bottom: 28px;
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
 .feedback-main::-webkit-scrollbar { display: none; }
-.feedback-title { font-size: clamp(36px, 10.6vw, 44px); line-height: 1.06; }
-.feedback-meta { margin-top: 8px; font-size: 13px; }
+.feedback-title { font-size: clamp(34px, 9.6vw, 42px); line-height: 1.06; }
+.feedback-meta { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.45; }
 .score-card {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 88px 1fr;
   align-items: center;
-  gap: 14px;
-  margin-top: 18px;
-  padding: 14px 16px;
+  gap: 10px;
+  min-height: 98px;
+  margin-top: 22px;
+  padding: 16px 18px;
   border-radius: 16px;
   background: var(--card);
 }
@@ -523,7 +526,7 @@ button,
 .score {
   color: var(--gold);
   font-family: var(--serif);
-  font-size: 54px;
+  font-size: 58px;
   line-height: 1;
   white-space: nowrap;
 }
@@ -547,18 +550,21 @@ button,
   color: var(--muted);
   font-size: 12.5px;
 }
-.feedback-section { margin-top: 22px; }
-.quote {
-  margin-top: 12px;
-  color: var(--cream);
-  font-size: 14px;
-  line-height: 1.55;
-}
-.refinements {
-  margin-top: 24px;
+/* Every block is separated by the same hairline, so the report reads as a
+   rhythm of sections instead of a pile of loose text. */
+.feedback-section {
+  margin-top: 26px;
   border-top: 1px solid var(--line-soft);
   padding-top: 18px;
 }
+.quote {
+  margin-top: 12px;
+  color: var(--cream);
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.4;
+}
+.refinements { margin-top: 26px; }
 .mistakes-list { list-style: none; margin-top: 10px; }
 .mistakes-list li {
   margin-top: 10px;
@@ -595,7 +601,7 @@ button,
   line-height: 1.5;
 }
 .c1-card {
-  margin-top: 22px;
+  margin-top: 26px;
   padding: 16px 17px 20px;
   border: 1px solid var(--brass-line);
   border-radius: 16px;
@@ -612,17 +618,33 @@ button,
   font-size: 12px;
   text-align: center;
 }
-.next-tip { margin-top: 22px; }
+.next-tip {
+  margin-top: 26px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 18px;
+}
 .feedback-text {
   margin-top: 9px;
   font-size: 13.5px;
   line-height: 1.55;
 }
+/* The actions sit at the foot of the report: one clear primary, one quiet
+   way back, pinned to the bottom whenever the content is short. */
 .score-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 22px;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 32px;
+}
+.score-actions .primary-button.small {
+  min-height: 58px;
+  border-radius: 16px;
+  font-size: 15px;
+}
+.score-actions .secondary-button {
+  min-height: 50px;
+  border-radius: 14px;
+  font-size: 13.5px;
 }
 
 /* ────────── 04 · vocabulary ────────── */
