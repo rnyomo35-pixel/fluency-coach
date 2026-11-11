@@ -1179,14 +1179,17 @@
     } else {
       if (mistakesLabel) {
         mistakesLabel.textContent =
-          "02  /  " + (mistakes.length === 1 ? "ONE REFINEMENT" : mistakes.length + " SMALL REFINEMENTS");
+          "02  /  " + (mistakes.length === 1 ? "ONE REFINEMENT" : mistakes.length + " REFINEMENTS");
       }
       mistakes.slice(0, 8).forEach((m) => {
         const li = document.createElement("li");
         li.innerHTML =
           (m.type ? '<span class="m-tag">' + escapeHtml(m.type) + "</span>" : "") +
-          '<span class="m-err">' + escapeHtml(m.error || "?") + "</span>" +
-          ' → <span class="m-fix">' + escapeHtml(m.correction || "?") + "</span>" +
+          '<span class="m-line">' +
+            '<span class="m-err">' + escapeHtml(m.error || "?") + "</span>" +
+            '<span class="m-arrow">→</span>' +
+            '<span class="m-fix">' + escapeHtml(m.correction || "?") + "</span>" +
+          "</span>" +
           '<span class="m-why">' + escapeHtml(m.explanation || "") + "</span>";
         els.mistakesList.appendChild(li);
       });
@@ -1591,10 +1594,7 @@
     );
 
     const done = queue.length === 0;
-    els.flashEmpty.classList.toggle("hidden", !done);
-    els.flashEmpty.textContent = total
-      ? "Every card seen, oldest first. Start another round to go again."
-      : "Nothing here yet — finish one attempt and your vocabulary collects itself.";
+    els.flashEmpty.classList.toggle("hidden", total > 0);
     els.btnFlashRestart.classList.toggle("hidden", !done || total === 0);
     els.btnFlashAgain.classList.toggle("hidden", done);
     els.btnFlashGot.classList.toggle("hidden", done);

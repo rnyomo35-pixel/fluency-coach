@@ -44,7 +44,7 @@
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --nav-h: 68px;
+  --nav-h: 52px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -476,7 +476,7 @@ button,
   font-size: 10.5px;
   transition: color 180ms;
 }
-.nav-item img { display: block; width: 25px; height: 25px; }
+.nav-item img { display: block; width: 22px; height: 22px; }
 .nav-item .ico-on { display: none; }
 .nav-item.selected .ico-on { display: block; }
 .nav-item.selected .ico-off { display: none; }
@@ -509,9 +509,10 @@ button,
 .feedback-title { font-size: clamp(36px, 10.6vw, 44px); line-height: 1.06; }
 .feedback-meta { margin-top: 8px; font-size: 13px; }
 .score-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 76px 1fr;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   margin-top: 18px;
   padding: 14px 16px;
   border-radius: 16px;
@@ -526,7 +527,7 @@ button,
 .score {
   color: var(--gold);
   font-family: var(--serif);
-  font-size: 60px;
+  font-size: 54px;
   line-height: 1;
 }
 .score-of {
@@ -560,31 +561,35 @@ button,
 }
 .mistakes-list { list-style: none; margin-top: 10px; }
 .mistakes-list li {
-  margin-top: 9px;
-  padding: 11px 14px 12px;
+  margin-top: 10px;
+  padding: 12px 14px 13px;
   border-radius: 12px;
   background: var(--card);
-  font-size: 12.5px;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--muted);
 }
-.m-err { color: var(--muted); text-decoration: line-through; text-decoration-color: #6f6a5f; }
-.m-fix { color: var(--gold); font-weight: 500; }
+/* The label sits on its own line so the rewrite wraps cleanly underneath
+   instead of hugging the chip. */
 .m-tag {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 7px;
+  display: block;
+  width: fit-content;
+  margin-bottom: 8px;
+  padding: 2px 8px;
   border: 1px solid var(--brass-line);
   border-radius: 999px;
   color: var(--gold);
   font: 8px/1.6 var(--mono);
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  vertical-align: 1px;
 }
+.m-line { display: block; }
+.m-err { color: var(--muted); text-decoration: line-through; text-decoration-color: #6f6a5f; }
+.m-arrow { margin: 0 4px; color: var(--muted); }
+.m-fix { color: var(--gold); font-weight: 500; }
 .m-why {
   display: block;
-  margin-top: 6px;
+  margin-top: 7px;
   color: var(--muted);
   font-size: 12.5px;
   line-height: 1.5;
@@ -651,12 +656,42 @@ button,
 }
 .flash-deck { position: absolute; inset: 0; }
 .flash-empty {
-  margin-top: 40px;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 28px;
   color: var(--muted);
   font-size: 12.5px;
   line-height: 1.55;
   text-align: center;
 }
+/* The end of a round: the deck's slot becomes the restart button. */
+.flash-restart {
+  position: absolute;
+  inset: 0 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--brass-line);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--gold);
+  font-family: var(--serif);
+  font-size: 38px;
+  line-height: 1;
+  transition: transform 140ms var(--ease-out), opacity 140ms;
+}
+.flash-restart::after {
+  content: "Start the deck again";
+  color: var(--muted);
+  font: 9.5px/1 var(--mono);
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+}
+.flash-restart:active { transform: scale(0.985); opacity: 0.92; }
 .fcard {
   position: absolute;
   inset: 0 0 22px;
