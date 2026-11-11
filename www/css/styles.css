@@ -512,31 +512,23 @@ button,
 .feedback-meta { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.45; }
 .score-card {
   display: grid;
-  grid-template-columns: 88px 1fr;
+  grid-template-columns: 78px 1fr;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   min-height: 98px;
   margin-top: 22px;
   padding: 16px 18px;
   border-radius: 16px;
   background: var(--card);
 }
-/* The "/ 10" is part of the same inline run as the digit, so it can never
-   drift away from the number's baseline. */
+/* The score stands alone: a single, centred figure with no "/ 10" beside it. */
 .score {
   color: var(--gold);
   font-family: var(--serif);
-  font-size: 58px;
+  font-size: 64px;
   line-height: 1;
-  white-space: nowrap;
-}
-.score::after {
-  content: " / 10";
-  margin-left: 1px;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.4px;
+  text-align: center;
+  letter-spacing: -0.02em;
 }
 .score-copy { min-width: 0; }
 .score-copy strong {
