@@ -1280,10 +1280,49 @@
     1: "Mic drop? Not yet — one more try.",
   };
 
+  /* Cormorant's figures are old-style: 3, 4, 5, 7 and 9 drop below the baseline
+     while the rest sit on it, so centring the line box leaves each score at a
+     different height. Measure the glyph that is actually drawn and nudge it so
+     the ink, not the box, ends up in the middle of the card. */
+  function centerScoreGlyph() {
+    const el = els.scoreValue;
+    if (!el) return;
+    const text = (el.textContent || "").trim();
+    if (!text) return;
+    try {
+      const cs = getComputedStyle(el);
+      const size = parseFloat(cs.fontSize) || 64;
+      const lh = parseFloat(cs.lineHeight) || size;
+      const canvas = document.createElement("canvas");
+      canvas.width = 360;
+      canvas.height = 360;
+      const g = canvas.getContext("2d");
+      if (!g) return;
+      g.font =
+        cs.fontStyle + " " + cs.fontWeight + " " + size + "px " + cs.fontFamily;
+      const metrics = g.measureText(text);
+      const inkUp = metrics.actualBoundingBoxAscent;
+      const inkDown = metrics.actualBoundingBoxDescent;
+      if (!isFinite(inkUp) || !isFinite(inkDown)) return;
+      /* The font's box is taller than the 1.0 line box, so the baseline sits low
+         in it; these ratios are the measured metrics of this face. */
+      const ascent = isFinite(metrics.fontBoundingBoxAscent)
+        ? metrics.fontBoundingBoxAscent
+        : size * 0.922;
+      const descent = isFinite(metrics.fontBoundingBoxDescent)
+        ? metrics.fontBoundingBoxDescent
+        : size * 0.281;
+      const baselineInBox = (lh - (ascent + descent)) / 2 + ascent;
+      const inkCenterInBox = baselineInBox + (inkDown - inkUp) / 2;
+      el.style.transform = "translateY(" + (lh / 2 - inkCenterInBox).toFixed(2) + "px)";
+    } catch (_) {}
+  }
+
   function renderScorecard(result, transcript, session) {
     const score = result.score; // already clamped by sanitizeEvaluation
 
     els.scoreValue.textContent = String(score);
+    centerScoreGlyph();
     els.scoreTitle.textContent = scoreTitles[score] || "Your score";
 
     els.heardText.textContent = "\u201C" + transcript + "\u201D";

@@ -524,8 +524,8 @@ button,
   background: var(--card);
 }
 /* The score stands alone: a single, centred figure with no "/ 10" beside it.
-   Cormorant's digits sit low in their line box, so the glyph is nudged back up
-   to the optical centre of the card. */
+   The exact nudge is measured per glyph in JS (old-style figures differ in
+   height); this is only the fallback if that measurement is unavailable. */
 .score {
   color: var(--gold);
   font-family: var(--serif);
@@ -533,7 +533,7 @@ button,
   line-height: 1;
   text-align: center;
   letter-spacing: -0.02em;
-  transform: translateY(-0.22em);
+  transform: translateY(-0.24em);
 }
 .score-copy { min-width: 0; }
 .score-copy strong {
