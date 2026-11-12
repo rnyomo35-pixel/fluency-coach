@@ -700,6 +700,19 @@
     startSpeakingFlow();
   });
 
+  /* The live line lives in a fixed box and never scrolls: a long answer would
+     push its newest words out of sight, so only the tail is shown — cut at a
+     word boundary and marked with an ellipsis. */
+  const LIVE_TAIL_CHARS = 150;
+  function liveTail(text) {
+    const t = String(text || "");
+    if (t.length <= LIVE_TAIL_CHARS) return t;
+    let tail = t.slice(-LIVE_TAIL_CHARS);
+    const space = tail.indexOf(" ");
+    if (space > 0) tail = tail.slice(space + 1);
+    return "… " + tail.trim();
+  }
+
   /* Reading beat: the topic is on screen, the clock is still. The learner gets
      a few seconds to see what they have to talk about before the mic opens.
      A one-line prompt is read in a moment, a long one needs longer, so the beat
@@ -799,7 +812,7 @@
     const flushTranscript = () => {
       transcriptFrame = 0;
       if (pendingTranscript === null) return;
-      const next = "🎙 " + (pendingTranscript || "Listening…");
+      const next = "🎙 " + (pendingTranscript ? liveTail(pendingTranscript) : "Listening…");
       if (els.liveTranscript.textContent !== next) els.liveTranscript.textContent = next;
       pendingTranscript = null;
     };
