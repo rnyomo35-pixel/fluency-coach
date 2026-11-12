@@ -677,13 +677,24 @@
   });
 
   /* Reading beat: the topic is on screen, the clock is still. The learner gets
-     a few seconds to see what they have to talk about before the mic opens. */
-  const READ_SECONDS = 6;
+     a few seconds to see what they have to talk about before the mic opens.
+     A one-line prompt is read in a moment, a long one needs longer, so the beat
+     scales with the length of the topic instead of a fixed count. */
+  function readSecondsFor(topic) {
+    const words = String(topic || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+    /* A comfortable read plus one beat to think: ~3 words a second, clamped so
+       a short prompt is a glance and a long one never drags. */
+    return Math.max(3, Math.min(8, Math.round(words / 3) + 1));
+  }
+
   let readBeat = null;   // { skip(), cancel() } while the countdown runs
 
-  function startReadingBeat() {
+  function startReadingBeat(seconds) {
     return new Promise((resolve) => {
-      let left = READ_SECONDS;
+      let left = Math.max(1, seconds || 3);
       let timer = 0;
       let settled = false;
       const end = (completed) => {
@@ -729,12 +740,13 @@
     revealTopic(topic);
     els.timerSection.classList.remove("hidden");
     els.liveTranscript.classList.add("active");
+    const readSeconds = readSecondsFor(topic);
     els.liveTranscript.textContent =
-      "Read the topic — the mic opens in " + READ_SECONDS + " seconds.";
+      "Read the topic — the mic opens in " + readSeconds + " seconds.";
     els.screenFlow.classList.add("is-speaking");
-    setStartButton("Start now · " + READ_SECONDS, false);
+    setStartButton("Start now · " + readSeconds, false);
 
-    const ready = await startReadingBeat();
+    const ready = await startReadingBeat(readSeconds);
     if (!ready) return;                       // cancelled (back button)
 
     els.liveTranscript.textContent = "Listening…";
