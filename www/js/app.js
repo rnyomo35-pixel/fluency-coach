@@ -200,6 +200,20 @@
     setStartButton(buildStartLabel(), false);
   }
 
+  /* The last finished attempt, kept until it is scored: when the models are
+     overloaded the learner retries the evaluation instead of speaking again. */
+  let lastAttempt = null;
+  const RETRY_LABEL = "<span>Retry evaluation</span>";
+
+  function refreshStartButton() {
+    if (lastAttempt && !state.recording && !state.evaluating) {
+      els.btnStart.classList.remove("recording");
+      setStartButton(RETRY_LABEL, false);
+      return;
+    }
+    resetStartButton();
+  }
+
   /* ────────────── Settings modal (API key) ────────────── */
   let keyLoadedForEdit = "";
 
@@ -386,6 +400,7 @@
   function goHome() {
     if (state.recording || state.evaluating) return;
     if (readBeat) readBeat.cancel();
+    lastAttempt = null;
     state.topic = "";
     els.topicText.textContent = TOPIC_PLACEHOLDER;
     els.topicText.classList.add("placeholder");
@@ -668,6 +683,15 @@
       readBeat.skip();
       return;
     }
+    /* A failed evaluation keeps its attempt: one tap re-runs it on the same
+       transcript instead of asking the learner to speak again. */
+    if (!state.recording && !state.evaluating && lastAttempt) {
+      const attempt = lastAttempt;
+      state.evaluating = true;
+      startEvalTicker();
+      evaluateWithGemini(attempt.transcript, attempt.session);
+      return;
+    }
     if (state.recording && state.session && state.session.requestStop) {
       setStartButton(evaluatingLabel, true);
       state.session.requestStop();
@@ -734,6 +758,7 @@
     /* Blind draw: the topic is chosen and revealed at the tap, then the mic and
        the clock wait through a short reading beat. */
     const topic = sameTopic || getRandomTopic(state.topic);
+    lastAttempt = null; // a fresh draw replaces the attempt kept for a retry
     state.topic = topic;
     showFlowScreen();
     resetTimerUI();
@@ -852,6 +877,12 @@
       return;
     }
 
+    /* Bank the attempt before anything can fail: the transcript is the work the
+       learner just did. */
+    lastAttempt = {
+      transcript: final,
+      session: { topic: session.topic, elapsedSec: session.elapsedSec },
+    };
     state.evaluating = true;
     startEvalTicker();
     await evaluateWithGemini(final, session);
@@ -1073,14 +1104,14 @@
     if (!apiKey) {
       state.evaluating = false;
       note("Missing API key — open settings ⚙️", true);
-      resetStartButton();
+      refreshStartButton();
       openSettings();
       return;
     }
     if (navigator.onLine === false) {
       state.evaluating = false;
       note("No internet connection — evaluation needs to reach Gemini.", true, 4200);
-      resetStartButton();
+      refreshStartButton();
       return;
     }
 
@@ -1147,6 +1178,7 @@
         throw new Error("Gemini's reply was empty — try again.");
       }
 
+      lastAttempt = null; // scored: nothing left to retry
       renderScorecard(sanitizeEvaluation(parsed), transcript, session);
     } catch (err) {
       const msg =
@@ -1158,14 +1190,14 @@
       /* Name what happened (timeout, busy model, bad key) and leave the line up
          until the next attempt instead of flashing it. */
       if (err && (err.timeout || err.retryable)) {
-        note(msg + " Both models were tried — give it another go in a moment.", true, 0);
+        note(msg + " Your attempt is kept — tap Retry evaluation.", true, 0);
       } else {
         note(msg, true, 5200);
       }
     } finally {
       stopEvalTicker();
       state.evaluating = false;
-      resetStartButton();
+      refreshStartButton();
     }
   }
 
